@@ -1,8 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
 
     <!-- required="false": P9 still installs (if uselessly) on a telephony-less device, rather
          than the Play/F-Droid store filtering it out entirely. -->
@@ -53,9 +57,9 @@
             android:theme="@style/Theme.Nine" />
 
         <!-- Its own taskAffinity for the same reason the dialer activity has one: returning to
-             an in-progress call (once M5's notification exists) must never resurface the dialer
-             instead. showWhenLocked/turnScreenOn land with M5's ringing screen; nothing here
-             needs them yet since there's no ringtone/lock-screen path before then. -->
+             an in-progress call via the ongoing notification must never resurface the dialer
+             instead. showWhenLocked/turnScreenOn are set at runtime in onCreate (the modern
+             replacement for the deprecated window-flag/manifest-attribute pair). -->
         <activity
             android:name=".call.CallActivity"
             android:exported="false"
@@ -63,18 +67,29 @@
             android:taskAffinity="life.furrer.p9.call"
             android:theme="@style/Theme.Nine" />
 
-        <!-- IN_CALL_SERVICE_RINGING=false leaves the ringtone to Telecom (M5 owns none of that
-             yet); P9 only draws the screen. Bound by Telecom only while P9 holds ROLE_DIALER. -->
+        <!-- IN_CALL_SERVICE_RINGING=false leaves the ringtone to Telecom; P9 only draws the
+             screen. Bound by Telecom only while P9 holds ROLE_DIALER.
+
+             tools:ignore="ForegroundServicePermission": lint wants MANAGE_OWN_CALLS alongside
+             FOREGROUND_SERVICE_PHONE_CALL, but that permission is for self-managed
+             ConnectionService apps (their own VoIP calls outside Telecom's system dialer role)
+             — an InCallService like this one is trusted by Telecom directly once bound, with no
+             extra permission to declare or request. -->
         <service
             android:name=".call.P9InCallService"
             android:exported="true"
-            android:permission="android.permission.BIND_INCALL_SERVICE">
+            android:permission="android.permission.BIND_INCALL_SERVICE"
+            android:foregroundServiceType="phoneCall"
+            tools:ignore="ForegroundServicePermission">
             <meta-data android:name="android.telecom.IN_CALL_SERVICE_UI" android:value="true" />
             <meta-data android:name="android.telecom.IN_CALL_SERVICE_RINGING" android:value="false" />
             <intent-filter>
                 <action android:name="android.telecom.InCallService" />
             </intent-filter>
         </service>
+
+        <!-- The ongoing-call notification's hang-up action. -->
+        <receiver android:name=".call.DisconnectCallReceiver" android:exported="false" />
 
     </application>
 </manifest>

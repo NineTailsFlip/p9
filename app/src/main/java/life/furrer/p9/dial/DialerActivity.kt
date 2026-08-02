@@ -139,8 +139,15 @@ class DialerActivity : Activity() {
         "P9 needs access to your Contacts and Call log, to search your address book and show who's calling.\n\n" +
             "P9 has no network permission — it never talks to a server."
 
+    // POST_NOTIFICATIONS rides along with the two blocking permissions (docs/p9-plan.md requests
+    // them "together") but isn't part of hasNeededPermissions() -- denying it means a ringing call
+    // never shows its full-screen notification (M5), not that the whole dialer is unusable, so it
+    // must never gate the permission screen the way READ_CONTACTS/READ_CALL_LOG do.
     private fun requestNeededPermissions() {
-        requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG), REQUEST_PERMISSIONS)
+        requestPermissions(
+            arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG, Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_PERMISSIONS,
+        )
     }
 
     override fun onResume() {
