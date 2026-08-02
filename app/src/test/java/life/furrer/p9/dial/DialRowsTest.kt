@@ -17,7 +17,7 @@ class DialRowsTest {
         ContactEntry(id, "lookup$id", name, starred = false, photoThumbnailUri = null, phoneNumbers = numbers.map { ContactPhoneNumber(it, null, false) })
 
     private fun logEntry(number: String, date: Long = 0L, type: Int = CallLog.Calls.OUTGOING_TYPE) =
-        CallLogEntry(1, number, cachedName = null, resolvedName = null, type = type, date = date, durationSeconds = 0, phoneAccountId = null)
+        CallLogEntry(1, number, cachedName = null, resolvedName = null, resolvedContactId = null, type = type, date = date, durationSeconds = 0, phoneAccountId = null)
 
     @Test
     fun `empty dial string shows call history, day-grouped`() {

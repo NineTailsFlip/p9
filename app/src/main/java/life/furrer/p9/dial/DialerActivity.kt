@@ -139,13 +139,19 @@ class DialerActivity : Activity() {
         "P9 needs access to your Contacts and Call log, to search your address book and show who's calling.\n\n" +
             "P9 has no network permission — it never talks to a server."
 
-    // POST_NOTIFICATIONS rides along with the two blocking permissions (docs/p9-plan.md requests
-    // them "together") but isn't part of hasNeededPermissions() -- denying it means a ringing call
-    // never shows its full-screen notification (M5), not that the whole dialer is unusable, so it
-    // must never gate the permission screen the way READ_CONTACTS/READ_CALL_LOG do.
+    // POST_NOTIFICATIONS/WRITE_CALL_LOG ride along with the two blocking permissions (docs/p9-
+    // plan.md requests them "together") but aren't part of hasNeededPermissions() -- denying them
+    // loses a ringing call's full-screen notification and history delete/clear respectively, not
+    // the whole dialer, so neither may gate the permission screen the way READ_CONTACTS/
+    // READ_CALL_LOG do.
     private fun requestNeededPermissions() {
         requestPermissions(
-            arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG, Manifest.permission.POST_NOTIFICATIONS),
+            arrayOf(
+                Manifest.permission.READ_CONTACTS,
+                Manifest.permission.READ_CALL_LOG,
+                Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.WRITE_CALL_LOG,
+            ),
             REQUEST_PERMISSIONS,
         )
     }
@@ -403,12 +409,71 @@ class DialerActivity : Activity() {
 
     private fun openMenu() {
         val items = mutableListOf(MenuItem("Contacts") { startActivity(Intent(this, ContactsActivity::class.java)) })
+        addToContactsTargetNumber()?.let { number ->
+            val intent = addToContactsIntent(number)
+            if (intent.resolveActivity(packageManager) != null) {
+                items.add(MenuItem("Add to contacts") { startActivity(intent) })
+            }
+        }
+        if (dialString.isEmpty) {
+            val selectedEntry = (rows.getOrNull(rowListView.selectedIndex) as? DialRow.HistoryEntry)?.entry
+            if (selectedEntry != null) {
+                items.add(MenuItem("Delete entry") { deleteHistoryEntry(selectedEntry.id) })
+            }
+            if (rows.any { it is DialRow.HistoryEntry }) {
+                items.add(MenuItem("Clear call history") { confirmClearHistory() })
+            }
+        }
         if (!DialerRole.isHeld(this) && DialerRole.isAvailable(this)) {
             @Suppress("DEPRECATION")
             items.add(MenuItem("Set P9 as default phone app") { startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE) })
         }
         items.add(MenuItem("Settings") { openSettings() })
         menuSheet.show(items)
+    }
+
+    /** The number a "* -> Add to contacts" hand-off would target — only when a number is typed
+     *  or an unknown-number (no [CallLogEntry.resolvedContactId]) row is selected, never for an
+     *  already-known contact (docs/p9-plan.md). */
+    private fun addToContactsTargetNumber(): String? {
+        val selected = rows.getOrNull(rowListView.selectedIndex)
+        return when {
+            selected is DialRow.HistoryEntry && selected.entry.resolvedContactId == null -> selected.entry.number
+            selected is DialRow.RecentMatch && selected.entry.resolvedContactId == null -> selected.entry.number
+            selected is DialRow.TypedNumber -> selected.digits
+            selected == null && dialString.isDialable -> dialString.digits
+            else -> null
+        }
+    }
+
+    // A platform hand-off, not an editor (docs/p9-plan.md) -- see CallDetailActivity's own copy
+    // of this for the full reasoning.
+    private fun addToContactsIntent(number: String): Intent =
+        Intent(Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI)
+            .putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, number)
+
+    // The existing callLogObserver (registered in registerContentObservers) already reloads on
+    // any CallLog.Calls change, so a successful delete/clear needs no explicit follow-up here —
+    // same "the write triggers its own reload" shape as :contacts' own screens.
+    private fun deleteHistoryEntry(id: Long) {
+        Async.run(
+            background = { CallLogStore.deleteEntry(this, id) },
+            onResult = { success -> if (!success) android.widget.Toast.makeText(this, "Couldn't delete", android.widget.Toast.LENGTH_SHORT).show() },
+        )
+    }
+
+    private fun confirmClearHistory() {
+        menuSheet.show(
+            listOf(
+                MenuItem("Yes, clear call history") {
+                    Async.run(
+                        background = { CallLogStore.clearAll(this) },
+                        onResult = { success -> if (!success) android.widget.Toast.makeText(this, "Couldn't clear", android.widget.Toast.LENGTH_SHORT).show() },
+                    )
+                },
+                MenuItem("Keep call history") {},
+            ),
+        )
     }
 
     private fun openSettings() {

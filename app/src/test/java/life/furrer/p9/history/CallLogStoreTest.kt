@@ -3,6 +3,7 @@ package life.furrer.p9.history
 import android.provider.CallLog
 import life.furrer.nine.contacts.FakeContactsProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -76,5 +77,61 @@ class CallLogStoreTest {
 
         val numbers = CallLogStore.queryCallLog(context, 50).map { it.number }
         assertEquals(listOf("b", "c", "a"), numbers)
+    }
+
+    @Test
+    fun `deleteEntry fails closed without WRITE_CALL_LOG`() {
+        shadowOf(context).denyPermissions(android.Manifest.permission.WRITE_CALL_LOG)
+        FakeCallLogProvider.putCall(1L, "079", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+        assertFalse(CallLogStore.deleteEntry(context, 1L))
+        assertEquals(1, FakeCallLogProvider.calls.size)
+    }
+
+    @Test
+    fun `deleteEntry removes just that one entry`() {
+        shadowOf(context).grantPermissions(android.Manifest.permission.WRITE_CALL_LOG)
+        FakeCallLogProvider.putCall(1L, "079", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+        FakeCallLogProvider.putCall(2L, "078", CallLog.Calls.OUTGOING_TYPE, date = 2L)
+
+        assertTrue(CallLogStore.deleteEntry(context, 1L))
+
+        val remaining = CallLogStore.queryCallLog(context, 50)
+        assertEquals(listOf("078"), remaining.map { it.number })
+    }
+
+    @Test
+    fun `deleteEntry for an unknown id returns false`() {
+        shadowOf(context).grantPermissions(android.Manifest.permission.WRITE_CALL_LOG)
+        assertFalse(CallLogStore.deleteEntry(context, 999L))
+    }
+
+    @Test
+    fun `clearAll fails closed without WRITE_CALL_LOG`() {
+        shadowOf(context).denyPermissions(android.Manifest.permission.WRITE_CALL_LOG)
+        FakeCallLogProvider.putCall(1L, "079", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+        assertFalse(CallLogStore.clearAll(context))
+        assertEquals(1, FakeCallLogProvider.calls.size)
+    }
+
+    @Test
+    fun `clearAll empties the whole log`() {
+        shadowOf(context).grantPermissions(android.Manifest.permission.WRITE_CALL_LOG)
+        FakeCallLogProvider.putCall(1L, "079", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+        FakeCallLogProvider.putCall(2L, "078", CallLog.Calls.OUTGOING_TYPE, date = 2L)
+
+        assertTrue(CallLogStore.clearAll(context))
+
+        assertTrue(CallLogStore.queryCallLog(context, 50).isEmpty())
+    }
+
+    @Test
+    fun `queryCallLog resolves the matched contact id alongside the name`() {
+        FakeContactsProvider.putContact(1L, "Andreas Furrer")
+        FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+
+        // FakeContactsProvider's own PhoneLookup shape isn't modeled (see the resolvedName test
+        // above), so this documents the same honest fallback for the id: no PhoneLookup fake
+        // means no resolution, not a crash.
+        assertNull(CallLogStore.queryCallLog(context, 50).single().resolvedContactId)
     }
 }

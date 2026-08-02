@@ -2,20 +2,27 @@ package life.furrer.p9.history
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import life.furrer.nine.contacts.ContactDetailActivity
 import life.furrer.nine.core.ui.HintBar
+import life.furrer.nine.core.ui.MenuItem
+import life.furrer.nine.core.ui.MenuSheet
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.hideStatusBar
@@ -30,16 +37,20 @@ private const val HISTORY_LIMIT = 200
 private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
 
 /** One number's history — every call to and from it, newest first, in a plain LinearLayout/
- *  ScrollView (docs/p9-plan.md: no `*` menu yet, Add-to-contacts/Delete are M7's job). Reached
- *  with OK from a history row in [life.furrer.p9.dial.DialerActivity]. */
+ *  ScrollView. `*` menu: Open contact (a known number) or Add to contacts (a platform hand-off,
+ *  hidden entirely if nothing can handle it — P9 never edits the address book itself), and
+ *  Delete these entries. Reached with OK from a history row in
+ *  [life.furrer.p9.dial.DialerActivity]. */
 class CallDetailActivity : Activity() {
 
     private var number: String = ""
     private var pendingDial = false
+    private var loadedEntries: List<CallLogEntry> = emptyList()
 
     private lateinit var titleText: TextView
     private lateinit var rowContainer: LinearLayout
     private lateinit var hintBar: HintBar
+    private lateinit var menuSheet: MenuSheet
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,11 +77,16 @@ class CallDetailActivity : Activity() {
                 },
             )
         }
-        hintBar = HintBar(this).apply { setText("call dial · ‹ back") }
-        val root = LinearLayout(this).apply {
+        hintBar = HintBar(this).apply { setText("* menu · call dial · ‹ back") }
+        menuSheet = MenuSheet(this)
+        val mainColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(scrollView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(hintBar)
+        }
+        val root = FrameLayout(this).apply {
+            addView(mainColumn, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(menuSheet, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         setContentView(root)
         hideStatusBar()
@@ -90,11 +106,18 @@ class CallDetailActivity : Activity() {
         val target = number
         Async.run(
             background = { CallLogStore.queryCallLog(this, HISTORY_LIMIT).filter { it.number == target } },
-            onResult = { entries -> render(entries) },
+            onResult = { entries ->
+                if (entries.isEmpty()) {
+                    finish()
+                } else {
+                    render(entries)
+                }
+            },
         )
     }
 
     private fun render(entries: List<CallLogEntry>) {
+        loadedEntries = entries
         titleText.text = entries.firstOrNull()?.displayName ?: number
         rowContainer.removeAllViews()
         entries.forEach { entry -> rowContainer.addView(buildRow(entry)) }
@@ -144,9 +167,14 @@ class CallDetailActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (menuSheet.handleKeyDown(keyCode, event)) return true
         when (keyCode) {
             KeyEvent.KEYCODE_CALL -> {
                 placeCallOrRequestPermission(number)
+                return true
+            }
+            KeyEvent.KEYCODE_STAR -> {
+                openMenu()
                 return true
             }
             KeyEvent.KEYCODE_BACK -> {
@@ -155,6 +183,53 @@ class CallDetailActivity : Activity() {
             }
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    private fun openMenu() {
+        val contactId = loadedEntries.firstOrNull()?.resolvedContactId
+        val items = mutableListOf<MenuItem>()
+        if (contactId != null) {
+            items.add(MenuItem("Open contact") { openContact(contactId) })
+        } else {
+            val addToContactsIntent = addToContactsIntent(number)
+            if (addToContactsIntent.resolveActivity(packageManager) != null) {
+                items.add(MenuItem("Add to contacts") { startActivity(addToContactsIntent) })
+            }
+        }
+        items.add(MenuItem("Delete these entries") { confirmDelete() })
+        menuSheet.show(items)
+    }
+
+    private fun openContact(contactId: Long) {
+        startActivity(Intent(this, ContactDetailActivity::class.java).putExtra(ContactDetailActivity.EXTRA_CONTACT_ID, contactId))
+    }
+
+    // A platform hand-off, not an editor (docs/p9-plan.md) -- on a phone with C9, this lands in
+    // C9's own editor (its ContactsActivity already declares the INSERT filter); on a phone
+    // without any contacts app, resolveActivity() in openMenu() hides this item entirely. P9
+    // never names C9 and never requires it to be installed.
+    private fun addToContactsIntent(number: String): Intent =
+        Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI)
+            .putExtra(ContactsContract.Intents.Insert.PHONE, number)
+
+    private fun confirmDelete() {
+        menuSheet.show(
+            listOf(
+                MenuItem("Yes, delete these entries") { deleteAndFinish() },
+                MenuItem("Keep") {},
+            ),
+        )
+    }
+
+    private fun deleteAndFinish() {
+        val ids = loadedEntries.map { it.id }
+        Async.run(
+            background = { ids.all { CallLogStore.deleteEntry(this, it) } },
+            onResult = { success ->
+                if (!success) Toast.makeText(this, "Couldn't delete", Toast.LENGTH_SHORT).show()
+                finish()
+            },
+        )
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

@@ -51,6 +51,19 @@ class FakeCallLogProvider : ContentProvider() {
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? = null
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = 0
-    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
+
+    // A single-id URI (ContentUris.withAppendedId, what deleteEntry() builds) deletes just that
+    // row; the bare CONTENT_URI (what clearAll() uses) has no id segment and deletes everything.
+    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
+        val id = uri.lastPathSegment?.toLongOrNull()
+        return if (id != null) {
+            if (calls.remove(id) != null) 1 else 0
+        } else {
+            val count = calls.size
+            calls.clear()
+            count
+        }
+    }
+
     override fun getType(uri: Uri): String? = null
 }

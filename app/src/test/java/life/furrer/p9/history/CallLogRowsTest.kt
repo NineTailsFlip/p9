@@ -21,7 +21,7 @@ class CallLogRowsTest {
         type: Int = CallLog.Calls.INCOMING_TYPE,
         durationSeconds: Long = 0,
         name: String? = null,
-    ) = CallLogEntry(id, number, cachedName = name, resolvedName = null, type = type, date = date, durationSeconds = durationSeconds, phoneAccountId = null)
+    ) = CallLogEntry(id, number, cachedName = name, resolvedName = null, resolvedContactId = null, type = type, date = date, durationSeconds = durationSeconds, phoneAccountId = null)
 
     @Test
     fun `groups entries under TODAY and YESTERDAY headers`() {
@@ -35,9 +35,9 @@ class CallLogRowsTest {
         assertEquals(
             listOf(
                 CallLogRow.DayHeader("TODAY"),
-                CallLogRow.Entry(1, "079", null, CallLog.Calls.INCOMING_TYPE, entries[0].date, 0, 1),
+                CallLogRow.Entry(1, "079", null, null, CallLog.Calls.INCOMING_TYPE, entries[0].date, 0, 1),
                 CallLogRow.DayHeader("YESTERDAY"),
-                CallLogRow.Entry(2, "078", null, CallLog.Calls.INCOMING_TYPE, entries[1].date, 0, 1),
+                CallLogRow.Entry(2, "078", null, null, CallLog.Calls.INCOMING_TYPE, entries[1].date, 0, 1),
             ),
             rows,
         )
@@ -118,19 +118,19 @@ class CallLogRowsTest {
 
     @Test
     fun `callLogMetaLine shows direction and duration for a single call`() {
-        val row = CallLogRow.Entry(1, "079", null, CallLog.Calls.OUTGOING_TYPE, 0L, durationSeconds = 135, count = 1)
+        val row = CallLogRow.Entry(1, "079", null, null, CallLog.Calls.OUTGOING_TYPE, 0L, durationSeconds = 135, count = 1)
         assertEquals("outgoing · 2:15", callLogMetaLine(row))
     }
 
     @Test
     fun `callLogMetaLine shows just the direction word when there is no duration to show`() {
-        val row = CallLogRow.Entry(1, "079", null, CallLog.Calls.MISSED_TYPE, 0L, durationSeconds = 0, count = 1)
+        val row = CallLogRow.Entry(1, "079", null, null, CallLog.Calls.MISSED_TYPE, 0L, durationSeconds = 0, count = 1)
         assertEquals("missed", callLogMetaLine(row))
     }
 
     @Test
     fun `callLogMetaLine shows the collapsed count instead of a duration`() {
-        val row = CallLogRow.Entry(1, "079", null, CallLog.Calls.MISSED_TYPE, 0L, durationSeconds = 0, count = 3)
+        val row = CallLogRow.Entry(1, "079", null, null, CallLog.Calls.MISSED_TYPE, 0L, durationSeconds = 0, count = 3)
         assertEquals("missed · 3 calls", callLogMetaLine(row))
     }
 }
