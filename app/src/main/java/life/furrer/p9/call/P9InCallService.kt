@@ -3,6 +3,7 @@ package life.furrer.p9.call
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.telecom.Call
+import android.telecom.CallEndpoint
 import android.telecom.InCallService
 
 /** Telecom's entry point into P9 — bound only while P9 holds `RoleManager.ROLE_DIALER`. Each
@@ -12,7 +13,8 @@ import android.telecom.InCallService
  *  off), posting whichever of [CallNotifications]' two notifications matches the current call's
  *  state — the incoming one's full-screen intent is what actually shows [CallActivity] over a
  *  locked screen; `startActivity` below is the same-process fast path for when the screen's
- *  already on. */
+ *  already on. Also publishes itself to [AudioRouting] for the duration of the binding, since
+ *  mute/speaker only exist on the service, not on any one call. */
 class P9InCallService : InCallService() {
 
     private val sessions = mutableMapOf<Call, TelecomCallSession>()
@@ -22,15 +24,17 @@ class P9InCallService : InCallService() {
         super.onCreate()
         CallNotifications.ensureChannels(this)
         CallRegistry.addListener(onRegistryChanged)
+        AudioRouting.attach(this)
     }
 
     override fun onDestroy() {
+        AudioRouting.detach(this)
         CallRegistry.removeListener(onRegistryChanged)
         super.onDestroy()
     }
 
     override fun onCallAdded(call: Call) {
-        val session = TelecomCallSession(call)
+        val session = TelecomCallSession(call, this)
         sessions[call] = session
         CallRegistry.add(session)
         startActivity(
@@ -42,6 +46,18 @@ class P9InCallService : InCallService() {
         val session = sessions.remove(call) ?: return
         session.unregister()
         CallRegistry.remove(session)
+    }
+
+    override fun onAvailableCallEndpointsChanged(availableEndpoints: MutableList<CallEndpoint>) {
+        AudioRouting.updateAvailableEndpoints(availableEndpoints)
+    }
+
+    override fun onCallEndpointChanged(callEndpoint: CallEndpoint) {
+        AudioRouting.notifyChanged()
+    }
+
+    override fun onMuteStateChanged(isMuted: Boolean) {
+        AudioRouting.updateMuted(isMuted)
     }
 
     private fun updateForegroundNotification() {

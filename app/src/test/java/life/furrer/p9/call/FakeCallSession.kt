@@ -9,8 +9,12 @@ class FakeCallSession(
     override val displayName: String? = null,
     override val connectTimeMillis: Long = 0L,
     override val capabilities: Set<CallCapability> = emptySet(),
+    override val isOutgoing: Boolean = false,
 ) : CallSession {
     var disconnected = false
+        private set
+    val dtmfTonesPlayed = mutableListOf<Char>()
+    var dtmfStopped = false
         private set
 
     override fun answer() {
@@ -34,6 +38,11 @@ class FakeCallSession(
         state = CallState.ACTIVE
     }
 
-    override fun playDtmf(c: Char) {}
-    override fun stopDtmf() {}
+    override fun playDtmf(c: Char) {
+        dtmfTonesPlayed.add(c)
+    }
+
+    override fun stopDtmf() {
+        dtmfStopped = true
+    }
 }

@@ -19,6 +19,10 @@ interface CallSession {
     val connectTimeMillis: Long
     val capabilities: Set<CallCapability>
 
+    /** For "vibrate on connect" — the classic feature-phone tell that the other side picked up
+     *  only makes sense for a call *you* placed. */
+    val isOutgoing: Boolean
+
     fun answer()
     fun reject()
     fun disconnect()
