@@ -46,6 +46,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Confirmed live on device: Telecom's own missed-call notification opens this
+                 implicit ACTION_VIEW/CONTENT_TYPE intent (CallLog.Calls.CONTENT_TYPE, hardcoded
+                 since a manifest <data> tag can't reference the Kotlin constant), not anything
+                 role- or package-aware. Without this filter it was landing on whatever other
+                 dialer app on the ROM does declare it, instead of P9. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/calls" />
+            </intent-filter>
         </activity>
 
         <activity
