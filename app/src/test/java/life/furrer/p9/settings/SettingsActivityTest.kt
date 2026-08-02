@@ -16,9 +16,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 
-/** P9 has no app-specific sections yet (docs/p9-plan.md M2) — this covers that it still gets
- *  core's shared Theme/Backup/About sections and can reach the Manual, the same shape as C9's own
- *  SettingsActivityTest. */
+/** Covers P9's Phone section (just "Default phone app" so far, docs/p9-plan.md M4) on top of
+ *  core's shared Theme/Backup/About sections, the same shape as C9's own SettingsActivityTest. */
 @RunWith(RobolectricTestRunner::class)
 class SettingsActivityTest {
 
@@ -52,7 +51,7 @@ class SettingsActivityTest {
     }
 
     @Test
-    fun `gets core's shared sections with no app-specific rows`() {
+    fun `gets core's shared sections plus the Phone section`() {
         val labels = rows(buildActivity()).map { it.text.toString() }
 
         assertTrue(labels.any { it.contains("Font") })
@@ -63,6 +62,22 @@ class SettingsActivityTest {
         assertTrue(labels.contains("Key mapping"))
         assertTrue(labels.contains("About"))
         assertTrue(labels.contains("Open website"))
+        assertTrue(labels.any { it.contains("Default phone app") })
+    }
+
+    @Test
+    fun `Default phone app shows not granted before the role is held`() {
+        val activity = buildActivity()
+        assertEquals("Default phone app: not granted", rows(activity)[0].text.toString())
+    }
+
+    @Test
+    fun `selecting Default phone app requests the role`() {
+        val activity = buildActivity()
+        press(activity, KeyEvent.KEYCODE_DPAD_CENTER)
+
+        val started = shadowOf(activity).nextStartedActivity
+        assertTrue(started != null)
     }
 
     @Test

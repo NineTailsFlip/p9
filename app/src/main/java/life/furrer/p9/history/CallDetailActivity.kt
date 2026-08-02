@@ -2,9 +2,7 @@ package life.furrer.p9.history
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.KeyEvent
@@ -23,6 +21,7 @@ import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.DateFmt
+import life.furrer.p9.telecom.placeCall
 
 private const val SIDE_PADDING_DP = 16
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
@@ -164,21 +163,17 @@ class CallDetailActivity : Activity() {
             checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
         ) {
             pendingDial = false
-            placeCall(number)
+            placeCall(this, number)
         }
     }
 
     private fun placeCallOrRequestPermission(number: String) {
         if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-            placeCall(number)
+            placeCall(this, number)
         } else {
             pendingDial = true
             requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), REQUEST_CALL_PHONE_PERMISSION)
         }
-    }
-
-    private fun placeCall(number: String) {
-        startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")))
     }
 
     private fun dp(value: Int): Int = TypedValue.applyDimension(

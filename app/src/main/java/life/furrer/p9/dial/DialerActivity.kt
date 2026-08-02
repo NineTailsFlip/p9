@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.ContentObserver
-import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -38,9 +37,12 @@ import life.furrer.nine.core.util.Async
 import life.furrer.p9.history.CallDetailActivity
 import life.furrer.p9.history.CallLogEntry
 import life.furrer.p9.history.CallLogStore
+import life.furrer.p9.telecom.DialerRole
+import life.furrer.p9.telecom.placeCall
 
 private const val REQUEST_PERMISSIONS = 100
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
+private const val REQUEST_DIALER_ROLE = 102
 private const val SIDE_PADDING_DP = 16
 
 // The full 0.1.0 default (docs/p9-plan.md's "Call history length" Settings row) is 200; that row
@@ -49,8 +51,8 @@ private const val HISTORY_LIMIT = 200
 
 /** P9's only launcher entry: a dial string built straight from digit keys (no T9/IME involved —
  *  a phone number isn't typed via word prediction), doubling as a search across contacts and call
- *  history, and as call history browsing when nothing is typed. Dialing goes through
- *  `ACTION_CALL` until M4 wires up the dialer role and `TelecomManager.placeCall`. */
+ *  history, and as call history browsing when nothing is typed. Dials through
+ *  `TelecomManager.placeCall` once P9 holds the dialer role, `ACTION_CALL` otherwise. */
 class DialerActivity : Activity() {
 
     private var dialString = DialString()
@@ -147,9 +149,19 @@ class DialerActivity : Activity() {
             permissionScreen.hide()
             registerContentObservers()
             loadData()
+            offerDialerRoleOnFirstRun()
         } else if (!permissionScreen.isShowing) {
             permissionScreen.show(permissionExplainer())
         }
+    }
+
+    // Asked once, ever (docs/p9-plan.md): after this, granting the role lives as a Settings row
+    // instead of a repeated system prompt every launch.
+    private fun offerDialerRoleOnFirstRun() {
+        if (DialerRole.isHeld(this) || !DialerRole.isAvailable(this) || DialerRole.hasAskedBefore(this)) return
+        DialerRole.markAsked(this)
+        @Suppress("DEPRECATION")
+        startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE)
     }
 
     override fun onPause() {
@@ -180,7 +192,7 @@ class DialerActivity : Activity() {
                 val number = pendingDialNumber
                 pendingDialNumber = null
                 if (number != null && checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-                    placeCall(number)
+                    placeCall(this, number)
                 }
             }
         }
@@ -383,12 +395,13 @@ class DialerActivity : Activity() {
     }
 
     private fun openMenu() {
-        menuSheet.show(
-            listOf(
-                MenuItem("Contacts") { startActivity(Intent(this, ContactsActivity::class.java)) },
-                MenuItem("Settings") { openSettings() },
-            ),
-        )
+        val items = mutableListOf(MenuItem("Contacts") { startActivity(Intent(this, ContactsActivity::class.java)) })
+        if (!DialerRole.isHeld(this) && DialerRole.isAvailable(this)) {
+            @Suppress("DEPRECATION")
+            items.add(MenuItem("Set P9 as default phone app") { startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE) })
+        }
+        items.add(MenuItem("Settings") { openSettings() })
+        menuSheet.show(items)
     }
 
     private fun openSettings() {
@@ -428,18 +441,11 @@ class DialerActivity : Activity() {
 
     private fun placeCallOrRequestPermission(number: String) {
         if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-            placeCall(number)
+            placeCall(this, number)
         } else {
             pendingDialNumber = number
             requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), REQUEST_CALL_PHONE_PERMISSION)
         }
-    }
-
-    // ACTION_CALL until M4 wires up the dialer role and TelecomManager.placeCall — the fallback
-    // path this app must keep working even after M4 lands (docs/p9-plan.md's "the fallback path
-    // stays alive" rule).
-    private fun placeCall(number: String) {
-        startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")))
     }
 
     private fun dp(value: Int): Int = android.util.TypedValue.applyDimension(

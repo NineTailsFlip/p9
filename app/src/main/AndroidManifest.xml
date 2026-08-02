@@ -16,10 +16,9 @@
         android:theme="@style/Theme.Nine"
         android:allowBackup="true">
 
-        <!-- P9's only launcher entry (decision 5, docs/p9-plan.md): the dialer. Its own
-             taskAffinity mirrors why C9's two launcher entries and P9's own future CallActivity
-             each get one — nothing else shares it yet, but M4's InCallService/role setup and the
-             ACTION_DIAL intent filters land here without disturbing this. -->
+        <!-- P9's only launcher entry (decision 5, docs/p9-plan.md): the dialer. The DIAL intent
+             filters are what make P9 eligible for RoleManager.ROLE_DIALER at all — the role is
+             only offered to an app with both an ACTION_DIAL activity and an InCallService. -->
         <activity
             android:name=".dial.DialerActivity"
             android:exported="true"
@@ -27,6 +26,16 @@
             android:taskAffinity="life.furrer.p9.dial"
             android:windowSoftInputMode="stateAlwaysHidden"
             android:configChanges="keyboardHidden|orientation|screenSize">
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="tel" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -42,6 +51,30 @@
             android:name=".settings.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.Nine" />
+
+        <!-- Its own taskAffinity for the same reason the dialer activity has one: returning to
+             an in-progress call (once M5's notification exists) must never resurface the dialer
+             instead. showWhenLocked/turnScreenOn land with M5's ringing screen; nothing here
+             needs them yet since there's no ringtone/lock-screen path before then. -->
+        <activity
+            android:name=".call.CallActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity="life.furrer.p9.call"
+            android:theme="@style/Theme.Nine" />
+
+        <!-- IN_CALL_SERVICE_RINGING=false leaves the ringtone to Telecom (M5 owns none of that
+             yet); P9 only draws the screen. Bound by Telecom only while P9 holds ROLE_DIALER. -->
+        <service
+            android:name=".call.P9InCallService"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE">
+            <meta-data android:name="android.telecom.IN_CALL_SERVICE_UI" android:value="true" />
+            <meta-data android:name="android.telecom.IN_CALL_SERVICE_RINGING" android:value="false" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
 
     </application>
 </manifest>
