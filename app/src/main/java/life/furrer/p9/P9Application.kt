@@ -14,8 +14,6 @@ class P9Application : Application() {
     }
 }
 
-// Placeholder intro/key map (docs/p9-plan.md M2) — the real content is M8's job, written once
-// dialing, calls and history actually exist to document.
 private val p9App = NineApp(
     id = "p9",
     name = "P9",
@@ -30,10 +28,39 @@ private val p9App = NineApp(
                 all-black dialer that doubles as call history, and a call screen driven entirely by
                 the green key, the red key and the d-pad.
 
-                This build is early: dialing, calls and history are still being wired up.
+                Dial a number directly, or type any digit to search your contacts and call history
+                the same T9 way as every other Nine app. With nothing typed, the list shows your call
+                history instead, newest first and grouped by day.
+
+                For P9 to draw its own call screen and answer/end calls directly, it needs to be set
+                as your phone's default app — the dialer's "*" menu offers this, and it also lives in
+                Settings as "Default phone app". Until it's granted, dialing still works, it just hands
+                the call off to whatever app already owns that role.
             """.trimIndent(),
             keyMap = listOf(
+                KeyHelp("0–9", "Append to the dial string; the list filters live."),
+                KeyHelp("Hold 0", "Insert \"+\"."),
+                KeyHelp("Up / Down", "Move the selection."),
+                KeyHelp("Left / Right", "Jump to the previous/next day or section."),
+                KeyHelp("OK", "Open the selected contact, call, or dial the typed number."),
+                KeyHelp("Call key", "Dial the selected row, or the typed digits."),
+                KeyHelp("Back", "Delete the last digit."),
+                KeyHelp("Hold Back", "Clear the whole dial string."),
+                KeyHelp("Back, empty", "Close the dialer."),
+                KeyHelp("#", "Toggle showing missed calls only."),
+                KeyHelp("*", "Open the menu: contacts, add to contacts, delete/clear history, settings."),
                 KeyHelp("Hold *", "Open Settings."),
+                KeyHelp("— Ringing —", ""),
+                KeyHelp("Call key / OK / 1", "Answer."),
+                KeyHelp("End key / Back / 2", "Reject."),
+                KeyHelp("# / 3", "Silence the ringer."),
+                KeyHelp("— During a call —", ""),
+                KeyHelp("Up / Down", "Move the selection among Mute, Speaker, Hold, Keypad, End call."),
+                KeyHelp("OK, or a row's own number", "Toggle or open the selected row."),
+                KeyHelp("Keypad", "Enter DTMF mode — every digit plus \"*\"/\"#\" sends a tone."),
+                KeyHelp("Back, in Keypad", "Return to the action list."),
+                KeyHelp("Back, elsewhere", "Leave the call screen without ending the call."),
+                KeyHelp("End key", "End the call."),
             ),
         ),
     ),
