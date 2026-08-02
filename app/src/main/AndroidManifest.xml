@@ -56,6 +56,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.dir/calls" />
             </intent-filter>
+            <!-- Confirmed live on device: the physical call/send key dispatches this action, a
+                 different one than DIAL above — same story as the missed-call notification, a
+                 plain implicit intent P9 was never a candidate for, so it always landed on the
+                 ROM's other dialer regardless of which app held ROLE_DIALER. -->
+            <intent-filter>
+                <action android:name="android.intent.action.CALL_BUTTON" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <activity
