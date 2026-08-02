@@ -1,0 +1,191 @@
+package life.furrer.p9.history
+
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Bundle
+import android.util.TypedValue
+import android.view.KeyEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import life.furrer.nine.core.ui.HintBar
+import life.furrer.nine.core.ui.Palette
+import life.furrer.nine.core.ui.applyConfiguredTheme
+import life.furrer.nine.core.ui.hideStatusBar
+import life.furrer.nine.core.util.Async
+import life.furrer.nine.core.util.DateFmt
+
+private const val SIDE_PADDING_DP = 16
+private const val REQUEST_CALL_PHONE_PERMISSION = 101
+private const val HISTORY_LIMIT = 200
+
+private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+
+/** One number's history — every call to and from it, newest first, in a plain LinearLayout/
+ *  ScrollView (docs/p9-plan.md: no `*` menu yet, Add-to-contacts/Delete are M7's job). Reached
+ *  with OK from a history row in [life.furrer.p9.dial.DialerActivity]. */
+class CallDetailActivity : Activity() {
+
+    private var number: String = ""
+    private var pendingDial = false
+
+    private lateinit var titleText: TextView
+    private lateinit var rowContainer: LinearLayout
+    private lateinit var hintBar: HintBar
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        applyConfiguredTheme()
+
+        number = intent.getStringExtra(EXTRA_NUMBER) ?: ""
+        if (number.isEmpty()) {
+            finish()
+            return
+        }
+
+        titleText = TextView(this).apply {
+            textSize = 20f
+            setTextColor(Palette.WHITE)
+            setPadding(dp(SIDE_PADDING_DP), dp(12), dp(SIDE_PADDING_DP), dp(8))
+        }
+        rowContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scrollView = ScrollView(this).apply {
+            addView(
+                LinearLayout(this@CallDetailActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(titleText)
+                    addView(rowContainer)
+                },
+            )
+        }
+        hintBar = HintBar(this).apply { setText("call dial · ‹ back") }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(scrollView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(hintBar)
+        }
+        setContentView(root)
+        hideStatusBar()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        load()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideStatusBar()
+    }
+
+    private fun load() {
+        val target = number
+        Async.run(
+            background = { CallLogStore.queryCallLog(this, HISTORY_LIMIT).filter { it.number == target } },
+            onResult = { entries -> render(entries) },
+        )
+    }
+
+    private fun render(entries: List<CallLogEntry>) {
+        titleText.text = entries.firstOrNull()?.displayName ?: number
+        rowContainer.removeAllViews()
+        entries.forEach { entry -> rowContainer.addView(buildRow(entry)) }
+    }
+
+    private fun buildRow(entry: CallLogEntry): View = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(dp(SIDE_PADDING_DP), dp(6), dp(SIDE_PADDING_DP), dp(6))
+        addView(
+            TextView(this@CallDetailActivity).apply {
+                text = directionGlyph(entry.type)
+                textSize = 16f
+                setTextColor(if (entry.type == android.provider.CallLog.Calls.MISSED_TYPE) Palette.RED else Palette.GRAY_DIM)
+                setPadding(0, 0, dp(8), 0)
+            },
+        )
+        addView(
+            TextView(this@CallDetailActivity).apply {
+                text = formatDateTime(entry.date)
+                textSize = 16f
+                setTextColor(Palette.GRAY_DIM)
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        addView(
+            TextView(this@CallDetailActivity).apply {
+                text = formatDurationLabel(entry)
+                textSize = 13f
+                setTextColor(Palette.GRAY_MUTED)
+            },
+        )
+    }
+
+    private fun formatDateTime(epochMillis: Long): String {
+        val date = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+        return "${date.format(DATE_FORMAT)} · ${DateFmt.formatTime(epochMillis)}"
+    }
+
+    private fun formatDurationLabel(entry: CallLogEntry): String {
+        val missed = entry.type == android.provider.CallLog.Calls.MISSED_TYPE ||
+            entry.type == android.provider.CallLog.Calls.REJECTED_TYPE ||
+            entry.type == android.provider.CallLog.Calls.BLOCKED_TYPE
+        if (missed) return ""
+        val minutes = entry.durationSeconds / 60
+        val seconds = entry.durationSeconds % 60
+        return "%d:%02d".format(minutes, seconds)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_CALL -> {
+                placeCallOrRequestPermission(number)
+                return true
+            }
+            KeyEvent.KEYCODE_BACK -> {
+                finish()
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CALL_PHONE_PERMISSION && pendingDial &&
+            checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingDial = false
+            placeCall(number)
+        }
+    }
+
+    private fun placeCallOrRequestPermission(number: String) {
+        if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            placeCall(number)
+        } else {
+            pendingDial = true
+            requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), REQUEST_CALL_PHONE_PERMISSION)
+        }
+    }
+
+    private fun placeCall(number: String) {
+        startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")))
+    }
+
+    private fun dp(value: Int): Int = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
+    ).toInt()
+
+    companion object {
+        const val EXTRA_NUMBER = "number"
+    }
+}

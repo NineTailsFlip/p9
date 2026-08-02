@@ -83,6 +83,7 @@ dependencies {
     implementation(project(":contacts"))
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation(testFixtures(project(":contacts")))
 }
 
 // Robolectric reflectively reaches into JDK internals (e.g. FileDescriptor) that JDK 17+'s module
