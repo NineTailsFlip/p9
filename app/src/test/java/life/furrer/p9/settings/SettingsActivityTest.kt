@@ -1,0 +1,79 @@
+package life.furrer.p9.settings
+
+import android.view.KeyEvent
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import life.furrer.nine.core.manual.ManualActivity
+import life.furrer.nine.core.settings.NineSettingsActivity
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+
+/** P9 has no app-specific sections yet (docs/p9-plan.md M2) — this covers that it still gets
+ *  core's shared Theme/Backup/About sections and can reach the Manual, the same shape as C9's own
+ *  SettingsActivityTest. */
+@RunWith(RobolectricTestRunner::class)
+class SettingsActivityTest {
+
+    private val context = RuntimeEnvironment.getApplication()
+
+    private fun buildActivity(): SettingsActivity =
+        Robolectric.buildActivity(
+            SettingsActivity::class.java,
+            NineSettingsActivity.intentFor(context, SettingsActivity::class.java, ""),
+        ).setup().get()
+
+    private fun rowContainer(activity: SettingsActivity): LinearLayout {
+        val scrollView = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as ScrollView
+        return scrollView.getChildAt(0) as LinearLayout
+    }
+
+    private fun isSectionHeader(text: CharSequence): Boolean =
+        text.isNotEmpty() && text.toString() == text.toString().uppercase()
+
+    private fun rows(activity: SettingsActivity): List<TextView> =
+        (0 until rowContainer(activity).childCount)
+            .map { rowContainer(activity).getChildAt(it) as TextView }
+            .filterNot { isSectionHeader(it.text) }
+
+    private fun moveTo(activity: SettingsActivity, index: Int) {
+        repeat(index) { activity.onKeyDown(KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent(0, 0, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN, 0)) }
+    }
+
+    private fun press(activity: SettingsActivity, keyCode: Int) {
+        activity.onKeyDown(keyCode, KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0))
+    }
+
+    @Test
+    fun `gets core's shared sections with no app-specific rows`() {
+        val labels = rows(buildActivity()).map { it.text.toString() }
+
+        assertTrue(labels.any { it.contains("Font") })
+        assertTrue(labels.any { it.contains("Hint bar") })
+        assertTrue(labels.contains("Export settings"))
+        assertTrue(labels.contains("Import settings"))
+        assertTrue(labels.contains("Intro"))
+        assertTrue(labels.contains("Key mapping"))
+        assertTrue(labels.contains("About"))
+        assertTrue(labels.contains("Open website"))
+    }
+
+    @Test
+    fun `selecting Intro opens core's ManualActivity for P9's single surface`() {
+        val activity = buildActivity()
+        val introIndex = rows(activity).indexOfFirst { it.text == "Intro" }
+        moveTo(activity, introIndex)
+        press(activity, KeyEvent.KEYCODE_DPAD_CENTER)
+
+        val started = shadowOf(activity).nextStartedActivity
+        assertEquals(ManualActivity::class.java.name, started.component?.className)
+        assertEquals(ManualActivity.PAGE_INTRO, started.getStringExtra(ManualActivity.EXTRA_PAGE))
+    }
+}
