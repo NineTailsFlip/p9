@@ -50,8 +50,11 @@
                  implicit ACTION_VIEW/CONTENT_TYPE intent (CallLog.Calls.CONTENT_TYPE, hardcoded
                  since a manifest <data> tag can't reference the Kotlin constant), not anything
                  role- or package-aware. Without this filter it was landing on whatever other
-                 dialer app on the ROM does declare it, instead of P9. -->
-            <intent-filter>
+                 dialer app on the ROM does declare it, instead of P9.
+                 tools:ignore: lint's AppLinkUrlError assumes any ACTION_VIEW filter is a web/app
+                 link missing a scheme+host; this one matches by mimeType, not URL, so there's no
+                 URL to add. -->
+            <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.dir/calls" />
