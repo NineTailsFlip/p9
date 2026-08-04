@@ -71,7 +71,7 @@ object AudioRouting {
 
     fun cycle() {
         val svc = service ?: return
-        val currentType = svc.currentCallEndpoint.endpointType
+        val currentType = svc.currentCallEndpoint?.endpointType ?: -1
         val startIndex = cycleOrder.indexOf(currentType).let { if (it < 0) 0 else it }
         for (step in 1..cycleOrder.size) {
             val candidateType = cycleOrder[(startIndex + step) % cycleOrder.size]
