@@ -4,11 +4,7 @@ import android.provider.CallLog
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
-
-private val DAY_HEADER_FORMAT = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+import life.furrer.nine.core.util.DateFmt
 
 /** One row of the dialer's call-history list — a day header, or one collapsed entry. Pure,
  *  entries-in/rows-out, per the Data layer section: day-group headers, consecutive same-number-
@@ -47,7 +43,7 @@ fun buildCallLogRows(
         val entry = filtered[i]
         val day = Instant.ofEpochMilli(entry.date).atZone(zone).toLocalDate()
         if (day != currentDay) {
-            rows.add(CallLogRow.DayHeader(dayLabel(day, today)))
+            rows.add(CallLogRow.DayHeader(DateFmt.dayLabel(day, today)))
             currentDay = day
         }
         var count = 1
@@ -75,12 +71,6 @@ fun buildCallLogRows(
         i = j
     }
     return rows
-}
-
-private fun dayLabel(day: LocalDate, today: LocalDate): String = when (day) {
-    today -> "TODAY"
-    today.minusDays(1) -> "YESTERDAY"
-    else -> "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).uppercase()} ${day.format(DAY_HEADER_FORMAT)}"
 }
 
 /** ↙ incoming, ↗ outgoing, ✕ missed, ⊘ rejected/blocked — shown on every row regardless of
