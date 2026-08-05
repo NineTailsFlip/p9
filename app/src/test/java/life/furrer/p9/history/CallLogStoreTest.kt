@@ -1,6 +1,8 @@
 package life.furrer.p9.history
 
+import android.content.ContentValues
 import android.provider.CallLog
+import android.provider.ContactsContract
 import life.furrer.nine.contacts.FakeContactsProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -51,10 +53,21 @@ class CallLogStoreTest {
 
     @Test
     fun `queryCallLog resolves a number to its current contact name via PhoneLookup`() {
-        FakeContactsProvider.putContact(1L, "Andreas Furrer")
-        // FakeContactsProvider's own PhoneLookup shape isn't modeled -- this documents the
-        // fallback instead: without a working PhoneLookup fake, resolvedName stays null and
-        // displayName falls back to the log's own cachedName.
+        putContactWithNumber(1L, "Andreas Furrer", "+41791234567")
+        // The whole point of resolving live rather than trusting the log: the log's own cached
+        // label is stale (the contact was renamed since the call), and PhoneLookup's answer wins.
+        // Also covers the normalization that matters in practice — the address book holds the
+        // number in international form, the log recorded it as dialed.
+        FakeCallLogProvider.putCall(1L, "079 123 45 67", CallLog.Calls.OUTGOING_TYPE, date = 1L, cachedName = "Cached Andreas")
+
+        val entry = CallLogStore.queryCallLog(context, 50).single()
+
+        assertEquals("Andreas Furrer", entry.resolvedName)
+        assertEquals("Andreas Furrer", entry.displayName)
+    }
+
+    @Test
+    fun `displayName falls back to the log's cached name when PhoneLookup knows nobody`() {
         FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L, cachedName = "Cached Andreas")
 
         val entry = CallLogStore.queryCallLog(context, 50).single()
@@ -126,12 +139,32 @@ class CallLogStoreTest {
 
     @Test
     fun `queryCallLog resolves the matched contact id alongside the name`() {
-        FakeContactsProvider.putContact(1L, "Andreas Furrer")
+        putContactWithNumber(1L, "Andreas Furrer", "079123")
         FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L)
 
-        // FakeContactsProvider's own PhoneLookup shape isn't modeled (see the resolvedName test
-        // above), so this documents the same honest fallback for the id: no PhoneLookup fake
-        // means no resolution, not a crash.
+        // The id is what a history row needs to open the contact's detail screen — resolving the
+        // name without it would leave that action dead.
+        assertEquals(1L, CallLogStore.queryCallLog(context, 50).single().resolvedContactId)
+    }
+
+    @Test
+    fun `an unknown number resolves to no contact id, not a crash`() {
+        FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L)
         assertNull(CallLogStore.queryCallLog(context, 50).single().resolvedContactId)
+    }
+
+    /** A contact the address book can actually look up by number: the Contacts row plus one
+     *  Phone data row, which is what FakeContactsProvider's PhoneLookup resolves against. */
+    private fun putContactWithNumber(contactId: Long, name: String, number: String) {
+        FakeContactsProvider.putContact(contactId, name)
+        FakeContactsProvider.putData(
+            id = contactId * 10,
+            contactId = contactId,
+            rawContactId = contactId,
+            mimetype = ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE,
+            values = ContentValues().apply {
+                put(ContactsContract.CommonDataKinds.Phone.NUMBER, number)
+            },
+        )
     }
 }
