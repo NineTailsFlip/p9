@@ -48,7 +48,7 @@ private val p9App = NineApp(
                 KeyHelp("Hold Back", "Clear the whole dial string."),
                 KeyHelp("Back, empty", "Close the dialer."),
                 KeyHelp("#", "Toggle showing missed calls only."),
-                KeyHelp("*", "Open the menu: contacts, add to contacts, delete/clear history, settings."),
+                KeyHelp("*", "Open the menu: contacts, new contact / add to existing contact, delete/clear history, settings."),
                 KeyHelp("Hold *", "Open Settings."),
                 KeyHelp("— Ringing —", ""),
                 KeyHelp("Call key / OK / 1", "Answer."),

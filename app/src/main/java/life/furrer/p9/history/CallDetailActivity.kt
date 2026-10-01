@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.provider.ContactsContract
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
@@ -37,9 +36,9 @@ private const val HISTORY_LIMIT = 200
 private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
 
 /** One number's history — every call to and from it, newest first, in a plain LinearLayout/
- *  ScrollView. `*` menu: Open contact (a known number) or Add to contacts (a platform hand-off,
- *  hidden entirely if nothing can handle it — P9 never edits the address book itself), and
- *  Delete these entries. Reached with OK from a history row in
+ *  ScrollView. `*` menu: Open contact (a known number) or New contact / Add to existing contact
+ *  (platform hand-offs via [ContactHandoff], hidden entirely if nothing can handle them — P9 never
+ *  edits the address book itself), and Delete these entries. Reached with OK from a history row in
  *  [life.furrer.p9.dial.DialerActivity]. */
 class CallDetailActivity : Activity() {
 
@@ -191,10 +190,7 @@ class CallDetailActivity : Activity() {
         if (contactId != null) {
             items.add(MenuItem("Open contact") { openContact(contactId) })
         } else {
-            val addToContactsIntent = addToContactsIntent(number)
-            if (addToContactsIntent.resolveActivity(packageManager) != null) {
-                items.add(MenuItem("Add to contacts") { startActivity(addToContactsIntent) })
-            }
+            items.addAll(ContactHandoff.menuItems(this, menuSheet, number))
         }
         items.add(MenuItem("Delete these entries") { confirmDelete() })
         menuSheet.show(items)
@@ -203,14 +199,6 @@ class CallDetailActivity : Activity() {
     private fun openContact(contactId: Long) {
         startActivity(Intent(this, ContactDetailActivity::class.java).putExtra(ContactDetailActivity.EXTRA_CONTACT_ID, contactId))
     }
-
-    // A platform hand-off, not an editor (docs/p9-plan.md) -- on a phone with C9, this lands in
-    // C9's own editor (its ContactsActivity already declares the INSERT filter); on a phone
-    // without any contacts app, resolveActivity() in openMenu() hides this item entirely. P9
-    // never names C9 and never requires it to be installed.
-    private fun addToContactsIntent(number: String): Intent =
-        Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI)
-            .putExtra(ContactsContract.Intents.Insert.PHONE, number)
 
     private fun confirmDelete() {
         menuSheet.show(

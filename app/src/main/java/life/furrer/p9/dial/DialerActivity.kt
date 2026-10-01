@@ -38,6 +38,7 @@ import life.furrer.nine.core.util.Reloader
 import life.furrer.p9.history.CallDetailActivity
 import life.furrer.p9.history.CallLogEntry
 import life.furrer.p9.history.CallLogStore
+import life.furrer.p9.history.ContactHandoff
 import life.furrer.p9.telecom.DialerRole
 import life.furrer.p9.telecom.placeCall
 
@@ -386,12 +387,7 @@ class DialerActivity : Activity() {
 
     private fun openMenu() {
         val items = mutableListOf(MenuItem("Contacts") { startActivity(Intent(this, ContactsActivity::class.java)) })
-        addToContactsTargetNumber()?.let { number ->
-            val intent = addToContactsIntent(number)
-            if (intent.resolveActivity(packageManager) != null) {
-                items.add(MenuItem("Add to contacts") { startActivity(intent) })
-            }
-        }
+        addToContactsTargetNumber()?.let { number -> items.addAll(ContactHandoff.menuItems(this, menuSheet, number)) }
         if (dialString.isEmpty) {
             val selectedEntry = (rows.getOrNull(rowListView.selectedIndex) as? DialRow.HistoryEntry)?.entry
             if (selectedEntry != null) {
@@ -409,7 +405,7 @@ class DialerActivity : Activity() {
         menuSheet.show(items)
     }
 
-    /** The number a "* -> Add to contacts" hand-off would target — only when a number is typed
+    /** The number a "* -> New contact / Add to existing contact" hand-off would target — only when a number is typed
      *  or an unknown-number (no [CallLogEntry.resolvedContactId]) row is selected, never for an
      *  already-known contact (docs/p9-plan.md). */
     private fun addToContactsTargetNumber(): String? {
@@ -422,12 +418,6 @@ class DialerActivity : Activity() {
             else -> null
         }
     }
-
-    // A platform hand-off, not an editor (docs/p9-plan.md) -- see CallDetailActivity's own copy
-    // of this for the full reasoning.
-    private fun addToContactsIntent(number: String): Intent =
-        Intent(Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI)
-            .putExtra(android.provider.ContactsContract.Intents.Insert.PHONE, number)
 
     // The existing callLogObserver (registered in registerContentObservers) already reloads on
     // any CallLog.Calls change, so a successful delete/clear needs no explicit follow-up here —
