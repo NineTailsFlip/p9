@@ -4,15 +4,15 @@ import android.Manifest
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.provider.CallLog
-import android.provider.ContactsContract
+import life.furrer.nine.contacts.ContactStore
+import life.furrer.nine.contacts.resolveNumbers
 
 /** One row of `CallLog.Calls`, before day-grouping/collapsing (see [CallLogRows]). [resolvedName]
- *  and [resolvedContactId] come from [ContactsContract.PhoneLookup] rather than the log's own
- *  [CallLog.Calls.CACHED_NAME] — that column is the *log's* best-effort label at call time, which
- *  can be stale (a contact renamed since) or simply absent (a call from before the number was
- *  ever saved); PhoneLookup always reflects the address book as it stands now. */
+ *  and [resolvedContactId] come from the address book itself ([ContactStore.resolveNumbers])
+ *  rather than the log's own [CallLog.Calls.CACHED_NAME] — that column is the *log's* best-effort
+ *  label at call time, which can be stale (a contact renamed since) or simply absent (a call from
+ *  before the number was ever saved); the address book always reflects who it is now. */
 data class CallLogEntry(
     val id: Long,
     val number: String,
@@ -24,7 +24,7 @@ data class CallLogEntry(
     val durationSeconds: Long,
     val phoneAccountId: String?,
 ) {
-    /** What the list actually shows — PhoneLookup's live answer, falling back to the log's own
+    /** What the list actually shows — the address book's live answer, falling back to the log's own
      *  cached label, falling back to nothing (the number is shown on its own). */
     val displayName: String? get() = resolvedName ?: cachedName
 }
@@ -37,11 +37,12 @@ object CallLogStore {
         context.checkSelfPermission(Manifest.permission.WRITE_CALL_LOG) == PackageManager.PERMISSION_GRANTED
 
     /** The dialer's own read, per the Data layer section: newest first, limited by the history-
-     *  length setting, phone numbers resolved to contacts through PhoneLookup rather than by
-     *  string-matching against the contacts list. Resolution is cached per call to this function
-     *  (one PhoneLookup query per *distinct* number in the batch, not per row) so a long log
-     *  against a large address book doesn't do one provider round trip per entry. */
-    fun queryCallLog(context: Context, limit: Int): List<CallLogEntry> {
+     *  length setting, phone numbers resolved to contacts through [ContactStore.resolveNumbers] —
+     *  one read of the phone table for the whole batch rather than one PhoneLookup round trip per
+     *  distinct number, which is what made this load grow slower with every new correspondent.
+     *  [number] narrows the read to one number's entries in the provider itself, so a detail
+     *  screen doesn't read (and resolve) the whole log just to throw most of it away. */
+    fun queryCallLog(context: Context, limit: Int, number: String? = null): List<CallLogEntry> {
         if (!hasReadPermission(context)) return emptyList()
 
         val projection = arrayOf(
@@ -57,8 +58,8 @@ object CallLogStore {
         context.contentResolver.query(
             CallLog.Calls.CONTENT_URI,
             projection,
-            null,
-            null,
+            number?.let { "${CallLog.Calls.NUMBER} = ?" },
+            number?.let { arrayOf(it) },
             "${CallLog.Calls.DATE} DESC LIMIT $limit",
         )?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(CallLog.Calls._ID)
@@ -85,37 +86,11 @@ object CallLogStore {
             }
         }
 
-        val resolved = resolveContacts(context, raw.map { it.number }.distinct())
+        val resolved = ContactStore.resolveNumbers(context, raw.map { it.number })
         return raw.map { entry ->
             val match = resolved[entry.number]
-            entry.copy(resolvedName = match?.first, resolvedContactId = match?.second)
+            entry.copy(resolvedName = match?.displayName, resolvedContactId = match?.contactId)
         }
-    }
-
-    private fun resolveContacts(context: Context, numbers: List<String>): Map<String, Pair<String, Long>> {
-        if (numbers.isEmpty()) return emptyMap()
-        if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return emptyMap()
-
-        val result = mutableMapOf<String, Pair<String, Long>>()
-        numbers.forEach { number ->
-            if (number.isBlank()) return@forEach
-            val uri: Uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
-            context.contentResolver.query(
-                uri,
-                arrayOf(ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.DISPLAY_NAME),
-                null,
-                null,
-                null,
-            )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val idIndex = cursor.getColumnIndexOrThrow(ContactsContract.PhoneLookup._ID)
-                    val nameIndex = cursor.getColumnIndexOrThrow(ContactsContract.PhoneLookup.DISPLAY_NAME)
-                    val name = cursor.getString(nameIndex)
-                    if (name != null) result[number] = name to cursor.getLong(idIndex)
-                }
-            }
-        }
-        return result
     }
 
     fun deleteEntry(context: Context, id: Long): Boolean {

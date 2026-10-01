@@ -105,7 +105,7 @@ class CallDetailActivity : Activity() {
     private fun load() {
         val target = number
         Async.run(
-            background = { CallLogStore.queryCallLog(this, HISTORY_LIMIT).filter { it.number == target } },
+            background = { CallLogStore.queryCallLog(this, HISTORY_LIMIT, number = target) },
             onResult = { entries ->
                 if (entries.isEmpty()) {
                     finish()

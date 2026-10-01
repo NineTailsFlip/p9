@@ -52,10 +52,10 @@ class CallLogStoreTest {
     }
 
     @Test
-    fun `queryCallLog resolves a number to its current contact name via PhoneLookup`() {
+    fun `queryCallLog resolves a number to its current contact name from the address book`() {
         putContactWithNumber(1L, "Andreas Furrer", "+41791234567")
         // The whole point of resolving live rather than trusting the log: the log's own cached
-        // label is stale (the contact was renamed since the call), and PhoneLookup's answer wins.
+        // label is stale (the contact was renamed since the call), and the address book's answer wins.
         // Also covers the normalization that matters in practice — the address book holds the
         // number in international form, the log recorded it as dialed.
         FakeCallLogProvider.putCall(1L, "079 123 45 67", CallLog.Calls.OUTGOING_TYPE, date = 1L, cachedName = "Cached Andreas")
@@ -67,7 +67,7 @@ class CallLogStoreTest {
     }
 
     @Test
-    fun `displayName falls back to the log's cached name when PhoneLookup knows nobody`() {
+    fun `displayName falls back to the log's cached name when the address book knows nobody`() {
         FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L, cachedName = "Cached Andreas")
 
         val entry = CallLogStore.queryCallLog(context, 50).single()
@@ -154,7 +154,7 @@ class CallLogStoreTest {
     }
 
     /** A contact the address book can actually look up by number: the Contacts row plus one
-     *  Phone data row, which is what FakeContactsProvider's PhoneLookup resolves against. */
+     *  Phone data row, which is what ContactStore.resolveNumbers reads. */
     private fun putContactWithNumber(contactId: Long, name: String, number: String) {
         FakeContactsProvider.putContact(contactId, name)
         FakeContactsProvider.putData(
@@ -166,5 +166,14 @@ class CallLogStoreTest {
                 put(ContactsContract.CommonDataKinds.Phone.NUMBER, number)
             },
         )
+    }
+
+    @Test
+    fun `queryCallLog narrowed to one number returns only that number's entries`() {
+        FakeCallLogProvider.putCall(1L, "079123", CallLog.Calls.OUTGOING_TYPE, date = 1L)
+        FakeCallLogProvider.putCall(2L, "044555", CallLog.Calls.INCOMING_TYPE, date = 2L)
+        FakeCallLogProvider.putCall(3L, "079123", CallLog.Calls.MISSED_TYPE, date = 3L)
+
+        assertEquals(listOf(3L, 1L), CallLogStore.queryCallLog(context, 50, number = "079123").map { it.id })
     }
 }

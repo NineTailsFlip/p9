@@ -9,8 +9,8 @@ import android.provider.CallLog
 
 /** A minimal in-memory call log provider for tests — Robolectric has no working CallLogProvider,
  *  same situation FakeContactsProvider/FakeCalendarProvider already work around. Always returns
- *  every row sorted newest-first regardless of the literal sortOrder string CallLogStore passes
- *  ("date DESC LIMIT n") — good enough for the small datasets these tests use. */
+ *  every matching row sorted newest-first regardless of the literal sortOrder string CallLogStore
+ *  passes ("date DESC LIMIT n") — good enough for the small datasets these tests use. */
 class FakeCallLogProvider : ContentProvider() {
 
     companion object {
@@ -43,9 +43,14 @@ class FakeCallLogProvider : ContentProvider() {
             CallLog.Calls.TYPE, CallLog.Calls.DATE, CallLog.Calls.DURATION, CallLog.Calls.PHONE_ACCOUNT_ID,
         )
         val cursor = MatrixCursor(cols)
-        calls.entries.sortedByDescending { it.value.getAsLong(CallLog.Calls.DATE) }.forEach { (id, values) ->
-            cursor.addRow(cols.map { col -> if (col == CallLog.Calls._ID) id else values.get(col) })
-        }
+        // Only CallLogStore's own "number = ?" narrowing is understood.
+        val number = if (selection == "${CallLog.Calls.NUMBER} = ?") selectionArgs?.firstOrNull() else null
+        calls.entries
+            .filter { number == null || it.value.getAsString(CallLog.Calls.NUMBER) == number }
+            .sortedByDescending { it.value.getAsLong(CallLog.Calls.DATE) }
+            .forEach { (id, values) ->
+                cursor.addRow(cols.map { col -> if (col == CallLog.Calls._ID) id else values.get(col) })
+            }
         return cursor
     }
 

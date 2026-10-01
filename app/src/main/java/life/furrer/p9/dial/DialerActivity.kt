@@ -34,6 +34,7 @@ import life.furrer.nine.core.ui.RowListView
 import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
+import life.furrer.nine.core.util.Reloader
 import life.furrer.p9.history.CallDetailActivity
 import life.furrer.p9.history.CallLogEntry
 import life.furrer.p9.history.CallLogStore
@@ -124,11 +125,9 @@ class DialerActivity : Activity() {
         hideStatusBar()
         updateHint()
 
-        if (hasNeededPermissions()) {
-            loadData()
-        } else {
-            permissionScreen.show(permissionExplainer())
-        }
+        // No load here: onResume always follows and loads, and doing both was measured as two
+        // full reads back to back on every launch.
+        if (!hasNeededPermissions()) permissionScreen.show(permissionExplainer())
     }
 
     private fun hasNeededPermissions(): Boolean =
@@ -220,16 +219,19 @@ class DialerActivity : Activity() {
         }.also { contentResolver.registerContentObserver(CallLog.Calls.CONTENT_URI, true, it) }
     }
 
-    private fun loadData() {
-        Async.run(
-            background = { ContactStore.queryContacts(this) to CallLogStore.queryCallLog(this, HISTORY_LIMIT) },
-            onResult = { (contacts, log) ->
-                allContacts = contacts
-                callLog = log
-                rebuildRows()
-            },
-        )
-    }
+    // Coalesced rather than a plain Async.run per trigger: onResume, both observers and a
+    // history delete can all fire within the same second (a call ending touches the call log and
+    // the contacts provider's usage stats at once), and each used to queue another full read.
+    private val dataLoader = Reloader(
+        background = { ContactStore.queryContacts(this) to CallLogStore.queryCallLog(this, HISTORY_LIMIT) },
+        onResult = { (contacts, log) ->
+            allContacts = contacts
+            callLog = log
+            rebuildRows()
+        },
+    )
+
+    private fun loadData() = dataLoader.request()
 
     private fun rebuildRows() {
         rows = buildDialRows(dialString.digits, allContacts, callLog, missedOnly, LocalDate.now())
