@@ -83,7 +83,7 @@ private fun bindTypedNumber(container: LinearLayout, digits: String) {
     val context = container.context
     container.addView(
         TextView(context).apply {
-            text = PhoneFormat.display(context, digits)
+            text = PhoneFormat.displayTyping(context, digits)
             textSize = 18f
             setTextColor(Palette.GRAY_DIM)
             setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)

@@ -5,7 +5,10 @@ import life.furrer.nine.core.util.NumberFormat
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class DialStringTest {
 
     @Test
@@ -67,14 +70,15 @@ class DialStringTest {
     }
 
     @Test
-    fun `formatted follows the chosen number format`() {
-        assertEquals("079 123 456 7", DialString("0791234567").formatted(NumberFormat.THREES))
-        assertEquals("079 123 45 67", DialString("0791234567").formatted(NumberFormat.SWISS))
-        assertEquals("0791234567", DialString("0791234567").formatted(NumberFormat.AS_SAVED))
+    fun `formatted groups by the home country as it's typed, or not at all when as saved`() {
+        assertEquals("079 123 45 67", DialString("0791234567").formatted(NumberFormat.BY_COUNTRY, "CH"))
+        assertEquals("041 700 4", DialString("0417004").formatted(NumberFormat.BY_COUNTRY, "CH"))
+        assertEquals("+44 7751 234023", DialString("+447751234023").formatted(NumberFormat.BY_COUNTRY, "CH"))
+        assertEquals("0791234567", DialString("0791234567").formatted(NumberFormat.AS_SAVED, "CH"))
     }
 
     @Test
     fun `a service code is never regrouped`() {
-        assertEquals("*#06#", DialString("*#06#", serviceCodeMode = true).formatted(NumberFormat.SWISS))
+        assertEquals("*#06#", DialString("*#06#", serviceCodeMode = true).formatted(NumberFormat.BY_COUNTRY, "CH"))
     }
 }

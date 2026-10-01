@@ -239,7 +239,7 @@ class DialerActivity : Activity() {
     private fun rebuildRows() {
         rows = buildDialRows(dialString.digits, allContacts, callLog, missedOnly, LocalDate.now())
         rowListView.notifyDataChanged()
-        dialStringText.text = dialString.formatted(NinePrefs.numberFormat(this))
+        dialStringText.text = dialString.formatted(NinePrefs.numberFormat(this), PhoneFormat.homeCountry(this))
         dialStringText.visibility = if (dialString.isEmpty) View.GONE else View.VISIBLE
         updateHint()
     }
