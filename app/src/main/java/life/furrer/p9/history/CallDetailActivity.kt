@@ -28,6 +28,7 @@ import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.DateFmt
 import life.furrer.p9.telecom.placeCall
+import life.furrer.nine.core.util.PhoneFormat
 
 private const val SIDE_PADDING_DP = 16
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
@@ -117,7 +118,7 @@ class CallDetailActivity : Activity() {
 
     private fun render(entries: List<CallLogEntry>) {
         loadedEntries = entries
-        titleText.text = entries.firstOrNull()?.displayName ?: number
+        titleText.text = entries.firstOrNull()?.displayName ?: PhoneFormat.display(this, number)
         rowContainer.removeAllViews()
         entries.forEach { entry -> rowContainer.addView(buildRow(entry)) }
     }

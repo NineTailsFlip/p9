@@ -33,5 +33,6 @@ class SettingsActivity : NineSettingsActivity() {
             get = { VibrateOnConnectSetting.isEnabled(this) },
             set = { VibrateOnConnectSetting.setEnabled(this, it) },
         )
+        numberFormatRow(scope)
     }
 }

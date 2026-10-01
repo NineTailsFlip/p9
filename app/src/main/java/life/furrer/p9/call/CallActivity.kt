@@ -15,6 +15,7 @@ import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.applyRowSelectionStyle
 import life.furrer.nine.core.ui.hideStatusBar
+import life.furrer.nine.core.util.PhoneFormat
 
 private const val SIDE_PADDING_DP = 16
 private const val ELAPSED_TICK_MS = 1000L
@@ -107,7 +108,7 @@ class CallActivity : Activity() {
             finish()
             return
         }
-        titleText.text = call.displayName ?: call.handle ?: "Unknown"
+        titleText.text = call.displayName ?: call.handle?.let { PhoneFormat.display(this, it) } ?: "Unknown"
         when {
             call.state == CallState.RINGING -> renderRinging(call)
             keypadMode -> renderKeypad()
@@ -116,7 +117,7 @@ class CallActivity : Activity() {
     }
 
     private fun renderRinging(call: CallSession) {
-        subtitleText.text = call.handle ?: ""
+        subtitleText.text = call.handle?.let { PhoneFormat.display(this, it) } ?: ""
         rowContainer.removeAllViews()
         listOf("Answer", "Reject", "Silence ringer").forEachIndexed { index, label ->
             rowContainer.addView(actionRow(index + 1, label, "", selected = false))

@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.util.DateFmt
+import life.furrer.nine.core.util.PhoneFormat
 
 const val CALL_LOG_ROW_HEIGHT_DP = 32
 // 48dp is the two-line row height every other list in the suite uses, but confirmed live on
@@ -79,7 +80,7 @@ private fun bindEntry(container: LinearLayout, row: CallLogRow.Entry, selected: 
     )
     mainLine.addView(
         TextView(context).apply {
-            text = row.displayName ?: row.number
+            text = row.displayName ?: PhoneFormat.display(context, row.number)
             textSize = 18f
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END

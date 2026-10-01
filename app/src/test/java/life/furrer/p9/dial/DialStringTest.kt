@@ -1,6 +1,7 @@
 package life.furrer.p9.dial
 
 import org.junit.Assert.assertEquals
+import life.furrer.nine.core.util.NumberFormat
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,7 +67,14 @@ class DialStringTest {
     }
 
     @Test
-    fun `formatted groups digits in threes, dumbly -- no locale-aware reformatting`() {
-        assertEquals("079 123 456 7", DialString("0791234567").formatted())
+    fun `formatted follows the chosen number format`() {
+        assertEquals("079 123 456 7", DialString("0791234567").formatted(NumberFormat.THREES))
+        assertEquals("079 123 45 67", DialString("0791234567").formatted(NumberFormat.SWISS))
+        assertEquals("0791234567", DialString("0791234567").formatted(NumberFormat.AS_SAVED))
+    }
+
+    @Test
+    fun `a service code is never regrouped`() {
+        assertEquals("*#06#", DialString("*#06#", serviceCodeMode = true).formatted(NumberFormat.SWISS))
     }
 }

@@ -1,13 +1,15 @@
 package life.furrer.p9.dial
 
 import life.furrer.nine.core.util.StringMatch
+import life.furrer.nine.core.util.NumberFormat
+import life.furrer.nine.core.util.PhoneFormat
 
 /** The dial field's own text-editing state — pure, no Android imports. Append/backspace/clear,
  *  `+` insertion (hold-0), and the "Service code" mode the `*` menu can enter (docs/p9-plan.md
  *  decision 2): while active, `*`/`#` are typed literally instead of meaning menu/favorites-
- *  toggle, so an MMI code like `*#06#` can be entered digit-by-digit. Formatting stays
- *  deliberately dumb — grouped in threes, no locale-aware `PhoneNumberUtils.formatNumber`
- *  guessing, which mangles Swiss numbers as often as it helps. */
+ *  toggle, so an MMI code like `*#06#` can be entered digit-by-digit. Formatting follows the
+ *  "Number format" setting ([PhoneFormat]) — explicit patterns rather than a locale-aware
+ *  `PhoneNumberUtils.formatNumber` guess, which mangles Swiss numbers as often as it helps. */
 data class DialString(val digits: String = "", val serviceCodeMode: Boolean = false) {
 
     fun append(char: Char): DialString = copy(digits = digits + char)
@@ -27,5 +29,5 @@ data class DialString(val digits: String = "", val serviceCodeMode: Boolean = fa
     /** Whether the call key should have anything to dial at all. */
     val isDialable: Boolean get() = StringMatch.looksDialable(digits) || (serviceCodeMode && digits.isNotEmpty())
 
-    fun formatted(): String = digits.chunked(3).joinToString(" ")
+    fun formatted(style: NumberFormat): String = PhoneFormat.format(digits, style)
 }

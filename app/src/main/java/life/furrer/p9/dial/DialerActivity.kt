@@ -41,6 +41,8 @@ import life.furrer.p9.history.CallLogStore
 import life.furrer.p9.history.ContactHandoff
 import life.furrer.p9.telecom.DialerRole
 import life.furrer.p9.telecom.placeCall
+import life.furrer.nine.core.prefs.NinePrefs
+import life.furrer.nine.core.util.PhoneFormat
 
 private const val REQUEST_PERMISSIONS = 100
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
@@ -237,7 +239,7 @@ class DialerActivity : Activity() {
     private fun rebuildRows() {
         rows = buildDialRows(dialString.digits, allContacts, callLog, missedOnly, LocalDate.now())
         rowListView.notifyDataChanged()
-        dialStringText.text = dialString.formatted()
+        dialStringText.text = dialString.formatted(NinePrefs.numberFormat(this))
         dialStringText.visibility = if (dialString.isEmpty) View.GONE else View.VISIBLE
         updateHint()
     }
@@ -471,7 +473,7 @@ class DialerActivity : Activity() {
                     placeCallOrRequestPermission(primary.number)
                 } else {
                     menuSheet.show(
-                        numbers.map { n -> MenuItem("${n.label ?: "Number"}: ${n.number}") { placeCallOrRequestPermission(n.number) } },
+                        numbers.map { n -> MenuItem("${n.label ?: "Number"}: ${PhoneFormat.display(this, n.number)}") { placeCallOrRequestPermission(n.number) } },
                     )
                 }
             }

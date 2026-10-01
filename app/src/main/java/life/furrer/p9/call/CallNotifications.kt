@@ -8,6 +8,7 @@ import android.app.Person
 import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
+import life.furrer.nine.core.util.PhoneFormat
 
 const val NOTIFICATION_ID_CALL = 1
 
@@ -48,7 +49,7 @@ object CallNotifications {
         )
         val screenAlreadyOn = context.getSystemService(PowerManager::class.java)?.isInteractive == true
         val builder = Notification.Builder(context, if (screenAlreadyOn) CHANNEL_ONGOING else CHANNEL_INCOMING)
-            .setContentTitle(call.displayName ?: call.handle ?: "Unknown")
+            .setContentTitle(call.displayName ?: call.handle?.let { PhoneFormat.display(context, it) } ?: "Unknown")
             .setContentText("Incoming call")
             .setSmallIcon(life.furrer.p9.R.drawable.ic_launcher_monochrome)
             .setCategory(Notification.CATEGORY_CALL)
@@ -64,7 +65,7 @@ object CallNotifications {
      *  to [CallActivity] after pressing Back (M6 makes Back leave the call screen without ending
      *  the call; until then there's little to "return" to, but the notification is harmless). */
     fun ongoingCallNotification(context: Context, call: CallSession): Notification {
-        val person = Person.Builder().setName(call.displayName ?: call.handle ?: "Unknown").build()
+        val person = Person.Builder().setName(call.displayName ?: call.handle?.let { PhoneFormat.display(context, it) } ?: "Unknown").build()
         val contentIntent = PendingIntent.getActivity(
             context, 0, callActivityIntent(context),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,

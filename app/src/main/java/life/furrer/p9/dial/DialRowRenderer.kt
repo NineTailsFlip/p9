@@ -13,6 +13,7 @@ import life.furrer.nine.contacts.createContactRowContainer
 import life.furrer.nine.core.ui.Palette
 import life.furrer.p9.history.bindCallLogRow
 import life.furrer.p9.history.callLogRowHeightDp
+import life.furrer.nine.core.util.PhoneFormat
 
 private const val ROW_HEIGHT_DP = 32
 private const val HEADER_ROW_HEIGHT_DP = 24
@@ -40,7 +41,7 @@ fun bindDialRow(container: LinearLayout, row: DialRow, selected: Boolean) {
         is DialRow.HistoryEntry -> bindCallLogRow(container, row.entry, selected)
         is DialRow.ContactMatch -> bindContactRow(container, ContactRow.Entry(row.contact), selected)
         is DialRow.NumberMatch -> bindContactRow(container, ContactRow.NumberMatch(row.contact, row.matchedNumber), selected)
-        is DialRow.RecentMatch -> bindRecentMatch(container, row.entry.displayName ?: row.entry.number, selected)
+        is DialRow.RecentMatch -> bindRecentMatch(container, row.entry.displayName ?: PhoneFormat.display(container.context, row.entry.number), selected)
         is DialRow.TypedNumber -> bindTypedNumber(container, row.digits)
     }
 }
@@ -82,7 +83,7 @@ private fun bindTypedNumber(container: LinearLayout, digits: String) {
     val context = container.context
     container.addView(
         TextView(context).apply {
-            text = digits
+            text = PhoneFormat.display(context, digits)
             textSize = 18f
             setTextColor(Palette.GRAY_DIM)
             setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
