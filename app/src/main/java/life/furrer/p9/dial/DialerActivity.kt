@@ -13,7 +13,6 @@ import android.provider.CallLog
 import android.provider.ContactsContract
 import android.view.KeyEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -25,6 +24,7 @@ import life.furrer.nine.contacts.ContactsActivity
 import life.furrer.nine.contacts.ContactDetailActivity
 import life.furrer.nine.core.Nine
 import life.furrer.nine.core.ui.HintBar
+import life.furrer.nine.core.ui.LongPressKey
 import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
 import life.furrer.nine.core.ui.Palette
@@ -77,7 +77,6 @@ class DialerActivity : Activity() {
     // handling).
     private var menuConsumedKeyUp: Int? = null
 
-    private val longPressHandler = Handler(Looper.getMainLooper())
     private val starKey = LongPressKey(::openMenu, ::openSettings)
     private val zeroKey = LongPressKey({ appendChar('0') }, { appendChar('+') })
     private val backKey = LongPressKey(::backspaceOrClose, ::clearDialString)
@@ -311,38 +310,14 @@ class DialerActivity : Activity() {
         return super.dispatchKeyEvent(event)
     }
 
-    /** The long-press-vs-tap distinction for `*`/`0`/Back is normally the framework's own job via
-     *  `onKeyLongPress` — but that relies on the key reaching `onKeyDown` via the default dispatch,
-     *  which this screen's `dispatchKeyEvent` override bypasses for these three keys (same
-     *  reasoning as ContactsActivity/CalendarActivity's own star handling). Tracked by hand
-     *  instead: a delayed callback started on DOWN, cancelled and checked on UP. */
+    /** See `:core`'s [LongPressKey] doc comment for why `*`/`0`/Back need this tracked by hand
+     *  instead of the framework's own `onKeyLongPress`. */
     private fun dispatchLongPressKey(key: LongPressKey, event: KeyEvent): Boolean {
         when (event.action) {
             KeyEvent.ACTION_DOWN -> key.onDown()
             KeyEvent.ACTION_UP -> key.onUp()
         }
         return true
-    }
-
-    private inner class LongPressKey(private val onTap: () -> Unit, private val onHold: () -> Unit) {
-        private var seenDown = false
-        private var fired = false
-        private val runnable = Runnable {
-            fired = true
-            onHold()
-        }
-
-        fun onDown() {
-            seenDown = true
-            fired = false
-            longPressHandler.postDelayed(runnable, ViewConfiguration.getLongPressTimeout().toLong())
-        }
-
-        fun onUp() {
-            longPressHandler.removeCallbacks(runnable)
-            if (seenDown && !fired) onTap()
-            seenDown = false
-        }
     }
 
     private fun appendChar(char: Char) {
