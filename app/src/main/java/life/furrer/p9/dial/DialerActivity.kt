@@ -195,7 +195,7 @@ class DialerActivity : Activity() {
                 val number = pendingDialNumber ?: return
                 pendingDialNumber = null
                 if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-                    placeCall(this, number)
+                    placeCallAndReset(number)
                 } else if (isEmergencyNumber(this, number) && !openEmergencyDialer(this, number)) {
                     android.widget.Toast.makeText(this, "Allow P9 to make calls to dial $number", android.widget.Toast.LENGTH_LONG).show()
                 }
@@ -507,11 +507,22 @@ class DialerActivity : Activity() {
 
     private fun placeCallOrRequestPermission(number: String) {
         if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-            placeCall(this, number)
+            placeCallAndReset(number)
         } else {
             pendingDialNumber = number
             requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), REQUEST_CALL_PHONE_PERMISSION)
         }
+    }
+
+    /** Hanging up lands on P9's home state rather than the number just called: an empty dial
+     *  string and the full history, top row selected. Redialing loses nothing — that call is now
+     *  the newest history entry, i.e. the selected row, so it's still one Call press away. */
+    private fun placeCallAndReset(number: String) {
+        placeCall(this, number)
+        dialString = dialString.clear()
+        missedOnly = false
+        rebuildRows()
+        rowListView.setSelectedIndex(0)
     }
 
     private fun dp(value: Int): Int = android.util.TypedValue.applyDimension(
