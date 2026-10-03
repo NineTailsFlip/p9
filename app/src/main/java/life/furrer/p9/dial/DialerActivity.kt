@@ -22,6 +22,7 @@ import life.furrer.nine.contacts.ContactEntry
 import life.furrer.nine.contacts.ContactStore
 import life.furrer.nine.contacts.ContactsActivity
 import life.furrer.nine.contacts.ContactDetailActivity
+import life.furrer.nine.contacts.ContactHandoff
 import life.furrer.nine.core.Nine
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.LongPressKey
@@ -37,7 +38,6 @@ import life.furrer.nine.core.util.Reloader
 import life.furrer.p9.history.CallDetailActivity
 import life.furrer.p9.history.CallLogEntry
 import life.furrer.p9.history.CallLogStore
-import life.furrer.p9.history.ContactHandoff
 import life.furrer.p9.telecom.DialerRole
 import life.furrer.p9.telecom.isEmergencyNumber
 import life.furrer.p9.telecom.openEmergencyDialer
