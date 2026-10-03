@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Without it, CallNotifications' setFullScreenIntent is silently dropped and a ringing
+         call on a locked/off screen only gets a notification. Install-time before Android 14; from 14
+         on it's a special app access a calling app qualifies for. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!-- required="false": P9 still installs (if uselessly) on a telephony-less device, rather
          than the Play/F-Droid store filtering it out entirely. -->
