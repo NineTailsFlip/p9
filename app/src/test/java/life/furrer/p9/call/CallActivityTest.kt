@@ -3,6 +3,7 @@ package life.furrer.p9.call
 import android.view.KeyEvent
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -21,6 +22,7 @@ class CallActivityTest {
 
     @After
     fun tearDown() {
+        ProximityScreenOff.setCoveredForTest(false)
         CallRegistry.all().forEach { CallRegistry.remove(it) }
         AudioRouting.reset()
     }
@@ -159,5 +161,19 @@ class CallActivityTest {
         down(activity, KeyEvent.KEYCODE_3)
 
         assertEquals(CallState.HOLDING, call.state)
+    }
+
+    @Test
+    fun `keys against the cheek do nothing`() {
+        val call = FakeCallSession("1", state = CallState.ACTIVE)
+        CallRegistry.add(call)
+        val activity = Robolectric.buildActivity(CallActivity::class.java).setup().get()
+        ProximityScreenOff.setCoveredForTest(true)
+
+        down(activity, KeyEvent.KEYCODE_ENDCALL)
+        down(activity, KeyEvent.KEYCODE_BACK)
+
+        assertEquals(CallState.ACTIVE, call.state)
+        assertFalse(activity.isFinishing)
     }
 }

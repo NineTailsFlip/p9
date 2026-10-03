@@ -69,6 +69,10 @@ object AudioRouting {
      *  for a label alone. */
     fun currentLabel(): String = labelFor(service?.currentCallEndpoint?.endpointType)
 
+    /** Whether the call is coming out of the earpiece, i.e. the phone is at someone's ear —
+     *  also when no endpoint has been reported yet, since every call starts there. */
+    fun isOnEarpiece(): Boolean = service?.currentCallEndpoint?.endpointType.let { it == null || it == CallEndpoint.TYPE_EARPIECE }
+
     fun cycle() {
         val svc = service ?: return
         val currentType = svc.currentCallEndpoint?.endpointType ?: -1

@@ -87,11 +87,14 @@ class CallActivity : Activity() {
         CallRegistry.addListener(onChanged)
         AudioRouting.addListener(onChanged)
         elapsedHandler.post(elapsedTick)
+        ProximityScreenOff.keypadOpen = keypadMode
         render()
     }
 
     override fun onPause() {
         super.onPause()
+        // The keypad isn't on screen once this isn't.
+        ProximityScreenOff.keypadOpen = false
         CallRegistry.removeListener(onChanged)
         AudioRouting.removeListener(onChanged)
         elapsedHandler.removeCallbacks(elapsedTick)
@@ -171,6 +174,7 @@ class CallActivity : Activity() {
     // this screen's second path to the same outcome, not the trigger it depends on: Telecom
     // changing the call's state is what actually drives [render] either way.
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (swallowedByCheek(keyCode)) return true
         val call = CallRegistry.all().firstOrNull() ?: return super.onKeyDown(keyCode, event)
 
         if (call.state == CallState.RINGING) return handleRingingKey(call, keyCode)
@@ -179,12 +183,21 @@ class CallActivity : Activity() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (swallowedByCheek(keyCode)) return true
         if (keypadMode && keyCode != KeyEvent.KEYCODE_BACK) {
             CallRegistry.all().firstOrNull()?.stopDtmf()
             return true
         }
         return super.onKeyUp(keyCode, event)
     }
+
+    /** With the phone against a face, any key press is a cheek, not a person — except volume,
+     *  which is how you adjust a call you're listening to. */
+    private fun swallowedByCheek(keyCode: Int): Boolean =
+        ProximityScreenOff.isCovered &&
+            keyCode != KeyEvent.KEYCODE_VOLUME_UP &&
+            keyCode != KeyEvent.KEYCODE_VOLUME_DOWN &&
+            keyCode != KeyEvent.KEYCODE_VOLUME_MUTE
 
     private fun handleRingingKey(call: CallSession, keyCode: Int): Boolean {
         when (keyCode) {
@@ -226,7 +239,7 @@ class CallActivity : Activity() {
             "Speaker" -> AudioRouting.cycle()
             "Hold" -> if (call.state == CallState.HOLDING) call.unhold() else call.hold()
             "Keypad" -> {
-                keypadMode = true
+                setKeypadMode(true)
                 keypadDigits = ""
             }
             "End call" -> call.disconnect()
@@ -239,7 +252,7 @@ class CallActivity : Activity() {
 
     private fun handleKeypadKeyDown(call: CallSession, keyCode: Int): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            keypadMode = false
+            setKeypadMode(false)
             render()
             return true
         }
@@ -248,6 +261,11 @@ class CallActivity : Activity() {
         keypadDigits += tone
         render()
         return true
+    }
+
+    private fun setKeypadMode(open: Boolean) {
+        keypadMode = open
+        ProximityScreenOff.keypadOpen = open
     }
 
     private fun dtmfCharFor(keyCode: Int): Char? = when (keyCode) {

@@ -14,7 +14,8 @@ import android.telecom.InCallService
  *  state — the incoming one's full-screen intent is what actually shows [CallActivity] over a
  *  locked screen; `startActivity` below is the same-process fast path for when the screen's
  *  already on. Also publishes itself to [AudioRouting] for the duration of the binding, since
- *  mute/speaker only exist on the service, not on any one call. */
+ *  mute/speaker only exist on the service, not on any one call, and owns
+ *  [ProximityScreenOff] for the same lifetime. */
 class P9InCallService : InCallService() {
 
     private val sessions = mutableMapOf<Call, TelecomCallSession>()
@@ -25,9 +26,11 @@ class P9InCallService : InCallService() {
         CallNotifications.ensureChannels(this)
         CallRegistry.addListener(onRegistryChanged)
         AudioRouting.attach(this)
+        ProximityScreenOff.attach(this)
     }
 
     override fun onDestroy() {
+        ProximityScreenOff.detach()
         AudioRouting.detach(this)
         CallRegistry.removeListener(onRegistryChanged)
         super.onDestroy()
