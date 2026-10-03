@@ -24,9 +24,9 @@ private val p9App = NineApp(
             id = "",
             name = "P9",
             introText = """
-                P9 ("Phone on 9 keys") is a phone app for a keypad phone with no touchscreen: an
-                all-black dialer that doubles as call history, and a call screen driven entirely by
-                the green key, the red key and the d-pad.
+                P9 ("Phone on 9 keys") is a phone app for a keypad phone with no touchscreen: a
+                dialer that doubles as call history, and a call screen driven entirely by the green
+                key, the red key and the d-pad.
 
                 Dial a number directly, or type any digit to search your contacts and call history
                 the same T9 way as every other Nine app. With nothing typed, the list shows your call

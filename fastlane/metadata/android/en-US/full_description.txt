@@ -1,0 +1,17 @@
+Phone on 9 keys. A dialer and call screen for phones with a physical keypad and no touchscreen:
+type digits to dial or to search contacts and call history, and handle calls with the green key,
+the red key and the d-pad.
+
+Features:
+
+* One screen for dialing and call history, grouped by day
+* T9 search across contacts and call history as you type
+* Call screen: answer, reject or silence the ringer; mute, speaker, hold, keypad
+* Swap and merge calls when a second one comes in
+* Save a number from the call history as a new contact, or add it to an existing one
+* Works as a plain dialer until you make it the default phone app
+* An in-app manual covering every key
+
+No internet permission, no ads, no analytics, no third-party libraries.
+
+Part of Nine, a suite of apps for keypad phones: https://nine.furrer.life
