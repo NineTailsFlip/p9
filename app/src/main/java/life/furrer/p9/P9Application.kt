@@ -54,7 +54,7 @@ private val p9App = NineApp(
                 KeyHelp("— Ringing —", ""),
                 KeyHelp("Call key / OK / 1", "Answer."),
                 KeyHelp("End key / Back / 2", "Reject."),
-                KeyHelp("# / 3", "Silence the ringer."),
+                KeyHelp("# / 3 / Volume", "Silence the ringer."),
                 KeyHelp("— During a call —", ""),
                 KeyHelp("Up / Down", "Move the selection among Mute, Speaker, Hold, Keypad, End call."),
                 KeyHelp("OK, or a row's own number", "Toggle or open the selected row."),

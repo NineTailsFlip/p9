@@ -125,7 +125,7 @@ class CallActivity : Activity() {
         listOf("Answer", "Reject", "Silence ringer").forEachIndexed { index, label ->
             rowContainer.addView(actionRow(index + 1, label, "", selected = false))
         }
-        hintBar.setText("call answer · end reject")
+        hintBar.setText("call answer · end reject · vol silence")
     }
 
     private fun renderKeypad() {
@@ -184,6 +184,9 @@ class CallActivity : Activity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         if (swallowedByCheek(keyCode)) return true
+        // The matching key-down was consumed to silence the ringer; consume the release too so
+        // the volume change doesn't fire from the up half.
+        if (isVolumeUpDown(keyCode) && CallRegistry.all().firstOrNull()?.state == CallState.RINGING) return true
         if (keypadMode && keyCode != KeyEvent.KEYCODE_BACK) {
             CallRegistry.all().firstOrNull()?.stopDtmf()
             return true
@@ -199,11 +202,15 @@ class CallActivity : Activity() {
             keyCode != KeyEvent.KEYCODE_VOLUME_DOWN &&
             keyCode != KeyEvent.KEYCODE_VOLUME_MUTE
 
+    private fun isVolumeUpDown(keyCode: Int) =
+        keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
+
     private fun handleRingingKey(call: CallSession, keyCode: Int): Boolean {
         when (keyCode) {
             KeyEvent.KEYCODE_CALL, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_1 -> call.answer()
             KeyEvent.KEYCODE_ENDCALL, KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_2 -> call.reject()
-            KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_3 -> silenceRinger()
+            KeyEvent.KEYCODE_POUND, KeyEvent.KEYCODE_3,
+            KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN -> silenceRinger()
             else -> return false
         }
         return true

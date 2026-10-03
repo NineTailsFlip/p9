@@ -53,6 +53,28 @@ class CallActivityTest {
     }
 
     @Test
+    fun `volume keys are consumed while ringing, both halves`() {
+        CallRegistry.add(FakeCallSession("1", state = CallState.RINGING))
+        val activity = Robolectric.buildActivity(CallActivity::class.java).setup().get()
+
+        for (key in listOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN)) {
+            assertTrue(activity.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, key, 0)))
+            assertTrue(activity.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, key, 0)))
+        }
+    }
+
+    @Test
+    fun `volume keys are not consumed once the call is active`() {
+        CallRegistry.add(FakeCallSession("1", state = CallState.ACTIVE))
+        val activity = Robolectric.buildActivity(CallActivity::class.java).setup().get()
+
+        for (key in listOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN)) {
+            assertFalse(activity.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_DOWN, key, 0)))
+            assertFalse(activity.dispatchKeyEvent(KeyEvent(0, 0, KeyEvent.ACTION_UP, key, 0)))
+        }
+    }
+
+    @Test
     fun `pressing 1 also answers a ringing call, same as OK`() {
         val call = FakeCallSession("1", state = CallState.RINGING)
         CallRegistry.add(call)
