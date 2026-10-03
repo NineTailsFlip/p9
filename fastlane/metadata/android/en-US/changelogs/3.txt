@@ -1,0 +1,5 @@
+- The screen turns off near the ear during calls
+- A volume key silences the ringer
+- Type and send service codes (USSD/MMI)
+- The dialer works without contacts and call log access
+- Back on the home screen after placing a call
