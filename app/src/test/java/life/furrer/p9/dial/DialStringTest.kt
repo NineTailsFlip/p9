@@ -3,6 +3,7 @@ package life.furrer.p9.dial
 import org.junit.Assert.assertEquals
 import life.furrer.nine.core.util.NumberFormat
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,10 +42,33 @@ class DialStringTest {
     }
 
     @Test
-    fun `enterServiceCodeMode inserts a leading star and flips the mode on`() {
+    fun `enterServiceCodeMode flips the mode on without typing anything, so a code can start with #`() {
         val result = DialString().enterServiceCodeMode()
-        assertEquals("*", result.digits)
+        assertEquals("", result.digits)
         assertTrue(result.serviceCodeMode)
+    }
+
+    @Test
+    fun `codes with a star or pound are dialable service codes even outside the mode`() {
+        listOf("*#06#", "*100#", "#31#0791234567", "**21*0791234567#", "079#").forEach {
+            assertTrue(it, DialString(it).isServiceCode)
+            assertTrue(it, DialString(it).isDialable)
+        }
+    }
+
+    @Test
+    fun `a plain number or text is not a service code`() {
+        assertFalse(DialString("0791234567").isServiceCode)
+        assertFalse(DialString("*a#").isServiceCode)
+        assertFalse(DialString().isServiceCode)
+    }
+
+    @Test
+    fun `secretCode extracts N from star-hash-star-hash N hash-star-hash-star only`() {
+        assertEquals("4636", DialString("*#*#4636#*#*").secretCode)
+        assertNull(DialString("*#06#").secretCode)
+        assertNull(DialString("*#*#4636#*#").secretCode)
+        assertNull(DialString("*#*##*#*").secretCode)
     }
 
     @Test

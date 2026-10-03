@@ -84,6 +84,25 @@ class DialerActivityTest {
     }
 
     @Test
+    fun `pound types a pound once something is typed`() {
+        val activity = Robolectric.buildActivity(DialerActivity::class.java).setup().get()
+
+        tap(activity, KeyEvent.KEYCODE_1)
+        tap(activity, KeyEvent.KEYCODE_POUND)
+
+        assertEquals("1#", dialStringOf(activity).text.toString())
+    }
+
+    @Test
+    fun `pound on an empty dial string is still the missed-calls toggle, not typed`() {
+        val activity = Robolectric.buildActivity(DialerActivity::class.java).setup().get()
+
+        tap(activity, KeyEvent.KEYCODE_POUND)
+
+        assertEquals(android.view.View.GONE, dialStringOf(activity).visibility)
+    }
+
+    @Test
     fun `back deletes one digit rather than clearing the whole string`() {
         val activity = Robolectric.buildActivity(DialerActivity::class.java).setup().get()
         tap(activity, KeyEvent.KEYCODE_0)

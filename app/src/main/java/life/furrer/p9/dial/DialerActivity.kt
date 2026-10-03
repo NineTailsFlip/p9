@@ -42,6 +42,7 @@ import life.furrer.p9.telecom.DialerRole
 import life.furrer.p9.telecom.isEmergencyNumber
 import life.furrer.p9.telecom.openEmergencyDialer
 import life.furrer.p9.telecom.placeCall
+import life.furrer.p9.telecom.sendSecretCode
 import life.furrer.nine.core.prefs.NinePrefs
 import life.furrer.nine.core.util.PhoneFormat
 
@@ -81,7 +82,7 @@ class DialerActivity : Activity() {
     // handling).
     private var menuConsumedKeyUp: Int? = null
 
-    private val starKey = LongPressKey(::openMenu, ::openSettings)
+    private val starKey = LongPressKey(::onStarTap, ::openSettings)
     private val zeroKey = LongPressKey({ appendChar('0') }, { appendChar('+') })
     private val backKey = LongPressKey(::backspaceOrClose, ::clearDialString)
 
@@ -236,11 +237,14 @@ class DialerActivity : Activity() {
 
     private fun updateHint() {
         hintBar.setText(
-            if (dialString.isEmpty) {
-                val toggleLabel = if (missedOnly) "# all" else "# missed"
-                "* menu · $toggleLabel · ← → day"
-            } else {
-                "call dial · ‹ back"
+            when {
+                dialString.serviceCodeMode && dialString.isEmpty -> "service code · * # type · ‹ exit"
+                dialString.serviceCodeMode -> "* # type · call send · ‹ back"
+                dialString.isEmpty -> {
+                    val toggleLabel = if (missedOnly) "# all" else "# missed"
+                    "* menu · $toggleLabel · ← → day"
+                }
+                else -> "call dial · ‹ back"
             },
         )
     }
@@ -289,7 +293,9 @@ class DialerActivity : Activity() {
                     return true
                 }
                 KeyEvent.KEYCODE_POUND -> {
-                    toggleMissedOnly()
+                    // The missed-calls toggle only means something over the bare history; once
+                    // anything is typed, # is part of what's being dialed (*100#, 079…#).
+                    if (dialString.serviceCodeMode || !dialString.isEmpty) appendChar('#') else toggleMissedOnly()
                     return true
                 }
                 KeyEvent.KEYCODE_CALL -> {
@@ -311,6 +317,12 @@ class DialerActivity : Activity() {
         return true
     }
 
+    /** `*` is typed only in service code mode; otherwise it stays the menu every Nine screen
+     *  opens with it, and "Type *" there is how a `*` gets into a plain dial string. */
+    private fun onStarTap() {
+        if (dialString.serviceCodeMode) appendChar('*') else openMenu()
+    }
+
     private fun appendChar(char: Char) {
         dialString = dialString.append(char)
         rebuildRows()
@@ -320,7 +332,11 @@ class DialerActivity : Activity() {
      *  meaning differs from `:contacts`' own list screens (docs/p9-plan.md decision 1) — a dial
      *  string is edited digit-by-digit, a search query is not. */
     private fun backspaceOrClose() {
-        if (dialString.isEmpty) {
+        if (dialString.isEmpty && dialString.serviceCodeMode) {
+            // Emptied in service code mode, Back leaves the mode first, the screen only next.
+            dialString = dialString.exitServiceCodeMode()
+            rebuildRows()
+        } else if (dialString.isEmpty) {
             finish()
         } else {
             dialString = dialString.backspace()
@@ -360,7 +376,7 @@ class DialerActivity : Activity() {
             is DialRow.HistoryEntry -> openCallDetail(row.entry.number)
             is DialRow.TypedNumber -> placeCallOrRequestPermission(row.digits)
             is DialRow.GrantAccess -> requestNeededPermissions()
-            else -> if (dialString.isDialable) placeCallOrRequestPermission(dialString.digits)
+            else -> dialTyped()
         }
     }
 
@@ -376,6 +392,13 @@ class DialerActivity : Activity() {
 
     private fun openMenu() {
         val items = mutableListOf(MenuItem("Contacts") { startActivity(Intent(this, ContactsActivity::class.java)) })
+        items.add(MenuItem("Type *") { appendChar('*') })
+        items.add(
+            MenuItem("Service code") {
+                dialString = dialString.enterServiceCodeMode()
+                rebuildRows()
+            },
+        )
         addToContactsTargetNumber()?.let { number -> items.addAll(ContactHandoff.menuItems(this, menuSheet, number)) }
         if (dialString.isEmpty) {
             val selectedEntry = (rows.getOrNull(rowListView.selectedIndex) as? DialRow.HistoryEntry)?.entry
@@ -445,8 +468,23 @@ class DialerActivity : Activity() {
             is DialRow.RecentMatch -> placeCallOrRequestPermission(selected.entry.number)
             is DialRow.HistoryEntry -> placeCallOrRequestPermission(selected.entry.number)
             is DialRow.TypedNumber -> placeCallOrRequestPermission(selected.digits)
-            else -> if (dialString.isDialable) placeCallOrRequestPermission(dialString.digits)
+            else -> dialTyped()
         }
+    }
+
+    /** The typed digits verbatim. A service code goes out the same way as a number — Telecom
+     *  recognizes MMI/USSD and the system shows the network's reply — except a `*#*#N#*#*`
+     *  secret code, which the platform only takes through its own API. */
+    private fun dialTyped() {
+        if (!dialString.isDialable) return
+        val secretCode = dialString.secretCode
+        if (secretCode != null) {
+            if (!sendSecretCode(this, secretCode)) {
+                android.widget.Toast.makeText(this, "Secret codes need P9 as the default phone app", android.widget.Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+        placeCallOrRequestPermission(dialString.digits)
     }
 
     private fun dialContact(contact: ContactEntry) {

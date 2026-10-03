@@ -24,6 +24,19 @@ fun placeCall(context: Context, number: String) {
     }
 }
 
+/** Runs an Android secret code (`*#*#N#*#*`, given as `N`). The platform only accepts it from
+ *  the default phone app. @return false when P9 isn't that or the system refused. */
+fun sendSecretCode(context: Context, code: String): Boolean {
+    if (!DialerRole.isHeld(context)) return false
+    val telephony = context.getSystemService(TelephonyManager::class.java) ?: return false
+    return try {
+        telephony.sendDialerSpecialCode(code)
+        true
+    } catch (_: SecurityException) {
+        false
+    }
+}
+
 /** False on a device without telephony, where the check itself throws. */
 fun isEmergencyNumber(context: Context, number: String): Boolean =
     try {
