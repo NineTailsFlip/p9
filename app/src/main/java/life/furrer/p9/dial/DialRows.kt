@@ -20,6 +20,10 @@ sealed interface DialRow {
     data class NumberMatch(val contact: ContactEntry, val matchedNumber: String) : DialRow
     data class RecentMatch(val entry: CallLogEntry) : DialRow
     data class TypedNumber(val digits: String) : DialRow
+
+    /** Stands in for contacts and history while P9 may not read them: the dialer itself keeps
+     *  working, because someone must always be able to type 112 and press Call. */
+    data object GrantAccess : DialRow
 }
 
 fun DialRow.isSelectable(): Boolean = this !is DialRow.SectionHeader && this !is DialRow.TypedNumber
@@ -30,9 +34,14 @@ fun buildDialRows(
     callLog: List<CallLogEntry>,
     missedOnly: Boolean,
     today: LocalDate,
+    hasAccess: Boolean = true,
 ): List<DialRow> {
-    if (dialString.isEmpty()) return buildHistoryRows(callLog, missedOnly, today)
-    return buildSearchRows(dialString, contacts, callLog)
+    val rows = if (dialString.isEmpty()) {
+        buildHistoryRows(callLog, missedOnly, today)
+    } else {
+        buildSearchRows(dialString, contacts, callLog)
+    }
+    return if (hasAccess) rows else rows + DialRow.GrantAccess
 }
 
 private fun buildHistoryRows(callLog: List<CallLogEntry>, missedOnly: Boolean, today: LocalDate): List<DialRow> =

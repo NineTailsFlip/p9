@@ -28,7 +28,6 @@ import life.furrer.nine.core.ui.LongPressKey
 import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
 import life.furrer.nine.core.ui.Palette
-import life.furrer.nine.core.ui.PermissionScreen
 import life.furrer.nine.core.ui.RowBinder
 import life.furrer.nine.core.ui.RowListView
 import life.furrer.nine.core.ui.applyConfiguredTheme
@@ -40,6 +39,8 @@ import life.furrer.p9.history.CallLogEntry
 import life.furrer.p9.history.CallLogStore
 import life.furrer.p9.history.ContactHandoff
 import life.furrer.p9.telecom.DialerRole
+import life.furrer.p9.telecom.isEmergencyNumber
+import life.furrer.p9.telecom.openEmergencyDialer
 import life.furrer.p9.telecom.placeCall
 import life.furrer.nine.core.prefs.NinePrefs
 import life.furrer.nine.core.util.PhoneFormat
@@ -70,7 +71,6 @@ class DialerActivity : Activity() {
     private lateinit var rowListView: RowListView
     private lateinit var hintBar: HintBar
     private lateinit var menuSheet: MenuSheet
-    private lateinit var permissionScreen: PermissionScreen
 
     private var contactsObserver: ContentObserver? = null
     private var callLogObserver: ContentObserver? = null
@@ -108,10 +108,6 @@ class DialerActivity : Activity() {
         rowListView = RowListView(this).apply { setBinder(binder) }
         hintBar = HintBar(this)
         menuSheet = MenuSheet(this)
-        permissionScreen = PermissionScreen(this).apply {
-            onGrant = { requestNeededPermissions() }
-            onLeave = { finish() }
-        }
 
         val mainColumn = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -122,7 +118,6 @@ class DialerActivity : Activity() {
         val root = FrameLayout(this).apply {
             addView(mainColumn, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(menuSheet, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-            addView(permissionScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         setContentView(root)
         hideStatusBar()
@@ -130,21 +125,18 @@ class DialerActivity : Activity() {
 
         // No load here: onResume always follows and loads, and doing both was measured as two
         // full reads back to back on every launch.
-        if (!hasNeededPermissions()) permissionScreen.show(permissionExplainer())
     }
 
+    /** Only contacts and history depend on these. The dialer never waits for them: a full-screen
+     *  permission explainer used to swallow every key, so 112 couldn't be typed until access was
+     *  granted. Without them the list shows [DialRow.GrantAccess] instead. */
     private fun hasNeededPermissions(): Boolean =
         ContactStore.hasPermission(this) && CallLogStore.hasReadPermission(this)
 
-    private fun permissionExplainer(): String =
-        "P9 needs access to your Contacts and Call log, to search your address book and show who's calling.\n\n" +
-            "P9 has no network permission — it never talks to a server."
-
-    // POST_NOTIFICATIONS/WRITE_CALL_LOG ride along with the two blocking permissions (docs/p9-
-    // plan.md requests them "together") but aren't part of hasNeededPermissions() -- denying them
-    // loses a ringing call's full-screen notification and history delete/clear respectively, not
-    // the whole dialer, so neither may gate the permission screen the way READ_CONTACTS/
-    // READ_CALL_LOG do.
+    // POST_NOTIFICATIONS/WRITE_CALL_LOG ride along with READ_CONTACTS/READ_CALL_LOG but aren't
+    // part of hasNeededPermissions() -- denying them loses a ringing call's full-screen
+    // notification and history delete/clear respectively, not contacts and history, so neither
+    // may keep the GrantAccess row up.
     private fun requestNeededPermissions() {
         requestPermissions(
             arrayOf(
@@ -160,12 +152,14 @@ class DialerActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (hasNeededPermissions()) {
-            permissionScreen.hide()
             registerContentObservers()
             loadData()
             offerDialerRoleOnFirstRun()
-        } else if (!permissionScreen.isShowing) {
-            permissionScreen.show(permissionExplainer())
+        } else {
+            // Access can also be revoked while P9 is in the background.
+            allContacts = emptyList()
+            callLog = emptyList()
+            rebuildRows()
         }
     }
 
@@ -194,19 +188,15 @@ class DialerActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
-            REQUEST_PERMISSIONS -> {
-                if (hasNeededPermissions()) {
-                    permissionScreen.hide()
-                    loadData()
-                } else {
-                    permissionScreen.show(permissionExplainer())
-                }
-            }
+            // REQUEST_PERMISSIONS needs nothing here: onResume follows the permission dialog and
+            // either loads or keeps showing the GrantAccess row.
             REQUEST_CALL_PHONE_PERMISSION -> {
-                val number = pendingDialNumber
+                val number = pendingDialNumber ?: return
                 pendingDialNumber = null
-                if (number != null && checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
                     placeCall(this, number)
+                } else if (isEmergencyNumber(this, number) && !openEmergencyDialer(this, number)) {
+                    android.widget.Toast.makeText(this, "Allow P9 to make calls to dial $number", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -237,7 +227,7 @@ class DialerActivity : Activity() {
     private fun loadData() = dataLoader.request()
 
     private fun rebuildRows() {
-        rows = buildDialRows(dialString.digits, allContacts, callLog, missedOnly, LocalDate.now())
+        rows = buildDialRows(dialString.digits, allContacts, callLog, missedOnly, LocalDate.now(), hasNeededPermissions())
         rowListView.notifyDataChanged()
         dialStringText.text = dialString.formatted(NinePrefs.numberFormat(this), PhoneFormat.homeCountry(this))
         dialStringText.visibility = if (dialString.isEmpty) View.GONE else View.VISIBLE
@@ -256,10 +246,6 @@ class DialerActivity : Activity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (permissionScreen.isShowing) {
-            if (event.action == KeyEvent.ACTION_DOWN) permissionScreen.handleKeyDown(event.keyCode)
-            return true
-        }
         if (menuSheet.isShowing) {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 menuSheet.handleKeyDown(event.keyCode, event)
@@ -373,6 +359,7 @@ class DialerActivity : Activity() {
             is DialRow.RecentMatch -> openCallDetail(row.entry.number)
             is DialRow.HistoryEntry -> openCallDetail(row.entry.number)
             is DialRow.TypedNumber -> placeCallOrRequestPermission(row.digits)
+            is DialRow.GrantAccess -> requestNeededPermissions()
             else -> if (dialString.isDialable) placeCallOrRequestPermission(dialString.digits)
         }
     }

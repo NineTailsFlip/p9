@@ -100,5 +100,21 @@ class DialRowsTest {
         assertTrue(DialRow.NumberMatch(ana, "1").isSelectable())
         assertTrue(!DialRow.SectionHeader("X").isSelectable())
         assertTrue(!DialRow.TypedNumber("1").isSelectable())
+        assertTrue(DialRow.GrantAccess.isSelectable())
+    }
+
+    @Test
+    fun `without access the list is only the access row`() {
+        val rows = buildDialRows("", emptyList(), emptyList(), missedOnly = false, today = today, hasAccess = false)
+        assertEquals(listOf(DialRow.GrantAccess), rows)
+    }
+
+    @Test
+    fun `without access a typed number is still echoed, above the access row`() {
+        val rows = buildDialRows("112", emptyList(), emptyList(), missedOnly = false, today = today, hasAccess = false)
+        assertEquals(
+            listOf(DialRow.SectionHeader("NUMBERS"), DialRow.TypedNumber("112"), DialRow.GrantAccess),
+            rows,
+        )
     }
 }

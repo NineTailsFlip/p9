@@ -8,7 +8,6 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import java.time.Duration
 import life.furrer.nine.contacts.FakeContactsProvider
-import life.furrer.nine.core.ui.PermissionScreen
 import life.furrer.p9.history.FakeCallLogProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -54,11 +53,6 @@ class DialerActivityTest {
         return mainColumn.getChildAt(0) as TextView
     }
 
-    private fun permissionScreenOf(activity: DialerActivity): PermissionScreen {
-        val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content).getChildAt(0) as FrameLayout
-        return root.getChildAt(2) as PermissionScreen
-    }
-
     @Test
     fun `launches without crashing and shows no dial string yet`() {
         val activity = Robolectric.buildActivity(DialerActivity::class.java).setup().get()
@@ -66,10 +60,15 @@ class DialerActivityTest {
     }
 
     @Test
-    fun `without permission the explainer screen shows instead`() {
-        shadowOf(context).denyPermissions(android.Manifest.permission.READ_CONTACTS)
+    fun `without contacts or call log access the keypad still types, so 112 can always be dialed`() {
+        shadowOf(context).denyPermissions(android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.READ_CALL_LOG)
         val activity = Robolectric.buildActivity(DialerActivity::class.java).setup().get()
-        assertTrue(permissionScreenOf(activity).isShowing)
+
+        tap(activity, KeyEvent.KEYCODE_1)
+        tap(activity, KeyEvent.KEYCODE_1)
+        tap(activity, KeyEvent.KEYCODE_2)
+
+        assertEquals("112", dialStringOf(activity).text.toString())
     }
 
     @Test
