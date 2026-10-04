@@ -1,5 +1,6 @@
 package life.furrer.p9.settings
 
+import android.app.role.RoleManager
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -8,6 +9,7 @@ import android.widget.TextView
 import life.furrer.nine.core.manual.ManualActivity
 import life.furrer.nine.core.settings.NineSettingsActivity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,18 +68,34 @@ class SettingsActivityTest {
     }
 
     @Test
-    fun `Default phone app shows not granted before the role is held`() {
+    fun `Default phone app shows another app before the role is held`() {
         val activity = buildActivity()
-        assertEquals("Default phone app: not granted", rows(activity)[0].text.toString())
+        assertEquals("Default phone app: another app", rows(activity)[0].text.toString())
+    }
+
+    @Test
+    fun `Default phone app shows P9 once the role is held`() {
+        shadowOf(context.getSystemService(RoleManager::class.java)).addHeldRole(RoleManager.ROLE_DIALER)
+        val activity = buildActivity()
+        assertEquals("Default phone app: P9", rows(activity)[0].text.toString())
     }
 
     @Test
     fun `selecting Default phone app requests the role`() {
+        shadowOf(context.getSystemService(RoleManager::class.java)).addAvailableRole(RoleManager.ROLE_DIALER)
         val activity = buildActivity()
         press(activity, KeyEvent.KEYCODE_DPAD_CENTER)
 
         val started = shadowOf(activity).nextStartedActivity
         assertTrue(started != null)
+    }
+
+    @Test
+    fun `selecting Default phone app does nothing when the role is unavailable`() {
+        val activity = buildActivity()
+        press(activity, KeyEvent.KEYCODE_DPAD_CENTER)
+
+        assertNull(shadowOf(activity).nextStartedActivity)
     }
 
     @Test

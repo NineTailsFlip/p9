@@ -3,6 +3,7 @@ package life.furrer.p9.telecom
 import life.furrer.nine.core.Nine
 import life.furrer.nine.core.NineApp
 import life.furrer.nine.core.NineSurface
+import life.furrer.nine.core.prefs.NinePrefs
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -26,6 +27,8 @@ class DialerRoleTest {
         assertFalse(DialerRole.hasAskedBefore(context))
         DialerRole.markAsked(context)
         assertTrue(DialerRole.hasAskedBefore(context))
+        // Existing installs already store this key; renaming it would ask them all again.
+        assertTrue(NinePrefs.of(context).getBoolean("asked_dialer_role", false))
     }
 
     @Test

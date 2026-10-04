@@ -20,11 +20,11 @@ class SettingsActivity : NineSettingsActivity() {
     private fun buildPhoneSection(scope: SectionScope) {
         scope.action(
             label = "Default phone app",
-            value = { if (DialerRole.isHeld(this)) "granted" else "not granted" },
+            value = { if (DialerRole.isHeld(this)) "P9" else "another app" },
             onSelect = {
-                if (!DialerRole.isHeld(this)) {
+                if (!DialerRole.isHeld(this) && DialerRole.isAvailable(this)) {
                     @Suppress("DEPRECATION")
-                    startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE)
+                    DialerRole.requestIntent(this)?.let { startActivityForResult(it, REQUEST_DIALER_ROLE) }
                 }
             },
         )

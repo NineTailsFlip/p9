@@ -164,8 +164,9 @@ class DialerActivity : Activity() {
     private fun offerDialerRoleOnFirstRun() {
         if (DialerRole.isHeld(this) || !DialerRole.isAvailable(this) || DialerRole.hasAskedBefore(this)) return
         DialerRole.markAsked(this)
+        val request = DialerRole.requestIntent(this) ?: return
         @Suppress("DEPRECATION")
-        startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE)
+        startActivityForResult(request, REQUEST_DIALER_ROLE)
     }
 
     override fun onPause() {
@@ -384,7 +385,7 @@ class DialerActivity : Activity() {
         }
         if (!DialerRole.isHeld(this) && DialerRole.isAvailable(this)) {
             @Suppress("DEPRECATION")
-            items.add(MenuItem("Set P9 as default phone app") { startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE) })
+            items.add(MenuItem("Set P9 as default phone app") { DialerRole.requestIntent(this)?.let { startActivityForResult(it, REQUEST_DIALER_ROLE) } })
         }
         items.add(MenuItem("Settings") { openNineSettings() })
         menuSheet.show(items)
