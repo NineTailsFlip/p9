@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.util.DateFmt
@@ -20,7 +21,7 @@ const val CALL_LOG_ROW_HEIGHT_DP = 32
 // needs. The extra 8dp heads-room goes entirely to the weighted main line.
 const val CALL_LOG_ROW_WITH_META_HEIGHT_DP = 56
 private const val HEADER_ROW_HEIGHT_DP = 24
-private const val ROW_SIDE_PADDING_DP = 16
+private const val ROW_SIDE_PADDING_DP = Dimens.SIDE_PADDING_DP
 
 // A fixed column for the direction glyph, rather than its own natural (variable per-glyph) width
 // plus end-padding, so the meta line below can indent to the exact same spot the caller name

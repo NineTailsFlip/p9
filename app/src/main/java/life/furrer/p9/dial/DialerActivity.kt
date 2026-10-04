@@ -24,6 +24,7 @@ import life.furrer.nine.contacts.ContactsActivity
 import life.furrer.nine.contacts.ContactDetailActivity
 import life.furrer.nine.contacts.ContactHandoff
 import life.furrer.nine.core.Nine
+import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.LongPressKey
 import life.furrer.nine.core.ui.MenuItem
@@ -50,7 +51,6 @@ import life.furrer.nine.core.util.PhoneFormat
 private const val REQUEST_PERMISSIONS = 100
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
 private const val REQUEST_DIALER_ROLE = 102
-private const val SIDE_PADDING_DP = 16
 
 // The full 0.1.0 default (docs/p9-plan.md's "Call history length" Settings row) is 200; that row
 // doesn't exist until M6, so this is a plain constant until then.
@@ -104,7 +104,7 @@ class DialerActivity : Activity() {
         dialStringText = TextView(this).apply {
             textSize = 24f
             setTextColor(Palette.WHITE)
-            setPadding(dp(SIDE_PADDING_DP), dp(10), dp(SIDE_PADDING_DP), dp(6))
+            setPadding(dp(Dimens.SIDE_PADDING_DP), dp(10), dp(Dimens.SIDE_PADDING_DP), dp(6))
             visibility = View.GONE
         }
         rowListView = RowListView(this).apply { setBinder(binder) }

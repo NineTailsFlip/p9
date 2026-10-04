@@ -10,6 +10,7 @@ import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.applyConfiguredTheme
@@ -18,7 +19,6 @@ import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.PhoneFormat
 
-private const val SIDE_PADDING_DP = 16
 private const val ELAPSED_TICK_MS = 1000L
 
 /** One screen, every call state (docs/p9-plan.md). Ringing gets numbered action rows (Answer/
@@ -61,13 +61,13 @@ class CallActivity : Activity() {
             textSize = 22f
             setTextColor(Palette.WHITE)
             gravity = Gravity.CENTER
-            setPadding(dp(SIDE_PADDING_DP), dp(24), dp(SIDE_PADDING_DP), dp(4))
+            setPadding(dp(Dimens.SIDE_PADDING_DP), dp(24), dp(Dimens.SIDE_PADDING_DP), dp(4))
         }
         subtitleText = TextView(this).apply {
             textSize = 15f
             setTextColor(Palette.GRAY_DIM)
             gravity = Gravity.CENTER
-            setPadding(dp(SIDE_PADDING_DP), 0, dp(SIDE_PADDING_DP), dp(24))
+            setPadding(dp(Dimens.SIDE_PADDING_DP), 0, dp(Dimens.SIDE_PADDING_DP), dp(24))
         }
         rowContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         hintBar = HintBar(this)
@@ -165,7 +165,7 @@ class CallActivity : Activity() {
     private fun actionRow(number: Int, label: String, value: String, selected: Boolean): TextView = TextView(this).apply {
         text = if (value.isEmpty()) "$number $label" else "$number $label $value"
         textSize = 18f
-        setPadding(dp(SIDE_PADDING_DP), dp(10), dp(SIDE_PADDING_DP), dp(10))
+        setPadding(dp(Dimens.SIDE_PADDING_DP), dp(10), dp(Dimens.SIDE_PADDING_DP), dp(10))
         applyRowSelectionStyle(selected)
     }
 

@@ -11,6 +11,7 @@ import life.furrer.nine.contacts.ContactRow
 import life.furrer.nine.contacts.bindContactRow
 import life.furrer.nine.contacts.contactRowHeightDp
 import life.furrer.nine.contacts.createContactRowContainer
+import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.dp
 import life.furrer.p9.history.bindCallLogRow
@@ -20,7 +21,7 @@ import life.furrer.nine.core.util.PhoneFormat
 private const val ROW_HEIGHT_DP = 32
 private const val HEADER_ROW_HEIGHT_DP = 24
 private const val GRANT_ACCESS_ROW_HEIGHT_DP = 52
-private const val ROW_SIDE_PADDING_DP = 16
+private const val ROW_SIDE_PADDING_DP = Dimens.SIDE_PADDING_DP
 
 /** [createContactRowContainer] returns nothing but a bare, empty `LinearLayout` — every [DialRow]
  *  kind is happy to reuse it as its own row container, so [life.furrer.nine.core.ui.RowListView]'s

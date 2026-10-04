@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import life.furrer.nine.contacts.ContactDetailActivity
 import life.furrer.nine.contacts.ContactHandoff
+import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
@@ -31,7 +32,6 @@ import life.furrer.nine.core.util.DateFmt
 import life.furrer.p9.telecom.placeCall
 import life.furrer.nine.core.util.PhoneFormat
 
-private const val SIDE_PADDING_DP = 16
 private const val REQUEST_CALL_PHONE_PERMISSION = 101
 private const val HISTORY_LIMIT = 200
 
@@ -66,7 +66,7 @@ class CallDetailActivity : Activity() {
         titleText = TextView(this).apply {
             textSize = 20f
             setTextColor(Palette.WHITE)
-            setPadding(dp(SIDE_PADDING_DP), dp(12), dp(SIDE_PADDING_DP), dp(8))
+            setPadding(dp(Dimens.SIDE_PADDING_DP), dp(12), dp(Dimens.SIDE_PADDING_DP), dp(8))
         }
         rowContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val scrollView = ScrollView(this).apply {
@@ -126,7 +126,7 @@ class CallDetailActivity : Activity() {
 
     private fun buildRow(entry: CallLogEntry): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        setPadding(dp(SIDE_PADDING_DP), dp(6), dp(SIDE_PADDING_DP), dp(6))
+        setPadding(dp(Dimens.SIDE_PADDING_DP), dp(6), dp(Dimens.SIDE_PADDING_DP), dp(6))
         addView(
             TextView(this@CallDetailActivity).apply {
                 text = directionGlyph(entry.type)
