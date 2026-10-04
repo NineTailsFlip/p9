@@ -1,7 +1,6 @@
 package life.furrer.p9.history
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -23,10 +22,9 @@ import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
+import life.furrer.nine.core.ui.NineActivity
 import life.furrer.nine.core.ui.Palette
-import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.dp
-import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.DateFmt
 import life.furrer.p9.telecom.placeCall
@@ -42,7 +40,7 @@ private val DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault
  *  (platform hand-offs via [ContactHandoff], hidden entirely if nothing can handle them — P9 never
  *  edits the address book itself), and Delete these entries. Reached with OK from a history row in
  *  [life.furrer.p9.dial.DialerActivity]. */
-class CallDetailActivity : Activity() {
+class CallDetailActivity : NineActivity() {
 
     private var number: String = ""
     private var pendingDial = false
@@ -55,7 +53,6 @@ class CallDetailActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyConfiguredTheme()
 
         number = intent.getStringExtra(EXTRA_NUMBER) ?: ""
         if (number.isEmpty()) {
@@ -90,17 +87,11 @@ class CallDetailActivity : Activity() {
             addView(menuSheet, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         setContentView(root)
-        hideStatusBar()
     }
 
     override fun onResume() {
         super.onResume()
         load()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideStatusBar()
     }
 
     private fun load() {

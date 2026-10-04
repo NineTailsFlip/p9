@@ -1,7 +1,6 @@
 package life.furrer.p9.dial
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -27,12 +26,11 @@ import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.LongPressKey
 import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
+import life.furrer.nine.core.ui.NineActivity
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.RowBinder
 import life.furrer.nine.core.ui.RowListView
-import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.dp
-import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.ProviderWatcher
 import life.furrer.nine.core.util.Reloader
@@ -59,7 +57,7 @@ private const val HISTORY_LIMIT = 200
  *  a phone number isn't typed via word prediction), doubling as a search across contacts and call
  *  history, and as call history browsing when nothing is typed. Dials through
  *  `TelecomManager.placeCall` once P9 holds the dialer role, `ACTION_CALL` otherwise. */
-class DialerActivity : Activity() {
+class DialerActivity : NineActivity() {
 
     private var dialString = DialString()
     private var allContacts: List<ContactEntry> = emptyList()
@@ -92,7 +90,6 @@ class DialerActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyConfiguredTheme()
 
         dialStringText = TextView(this).apply {
             textSize = 24f
@@ -115,7 +112,6 @@ class DialerActivity : Activity() {
             addView(menuSheet, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         setContentView(root)
-        hideStatusBar()
         updateHint()
 
         // No load here: onResume always follows and loads, and doing both was measured as two
@@ -173,11 +169,6 @@ class DialerActivity : Activity() {
         super.onPause()
         contactsWatcher.stop()
         callLogWatcher.stop()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideStatusBar()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

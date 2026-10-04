@@ -12,11 +12,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
+import life.furrer.nine.core.ui.NineActivity
 import life.furrer.nine.core.ui.Palette
-import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.applyRowSelectionStyle
 import life.furrer.nine.core.ui.dp
-import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.PhoneFormat
 
 private const val ELAPSED_TICK_MS = 1000L
@@ -30,7 +29,7 @@ private const val ELAPSED_TICK_MS = 1000L
  *  selected row, keypad mode) — [render] re-reads [CallRegistry]/[AudioRouting] from scratch
  *  every time, so a call that changes state while this screen wasn't listening still renders
  *  correctly the moment it resumes. */
-class CallActivity : Activity() {
+class CallActivity : NineActivity() {
 
     private var selectedIndex = 0
     private var keypadMode = false
@@ -53,7 +52,6 @@ class CallActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyConfiguredTheme()
         setShowWhenLocked(true)
         setTurnScreenOn(true)
 
@@ -80,7 +78,6 @@ class CallActivity : Activity() {
             addView(hintBar)
         }
         setContentView(root)
-        hideStatusBar()
     }
 
     override fun onResume() {
@@ -99,11 +96,6 @@ class CallActivity : Activity() {
         CallRegistry.removeListener(onChanged)
         AudioRouting.removeListener(onChanged)
         elapsedHandler.removeCallbacks(elapsedTick)
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideStatusBar()
     }
 
     private fun render() {
