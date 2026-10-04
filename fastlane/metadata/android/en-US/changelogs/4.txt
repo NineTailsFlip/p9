@@ -1,0 +1,3 @@
+- Holding 0 types exactly one +
+- Holding OK or a number to choose a menu entry no longer types into the dial string
+- Settings shows which app is the default phone app
