@@ -77,12 +77,6 @@ class DialerActivity : Activity() {
     private var contactsObserver: ContentObserver? = null
     private var callLogObserver: ContentObserver? = null
 
-    // Selecting a menu item via OK closes the sheet as a side effect of handling that same key's
-    // ACTION_DOWN — see ContactsActivity's own menuConsumedKeyUp for the full reasoning this
-    // mirrors (the matching ACTION_UP must not also fall through into this screen's own OK
-    // handling).
-    private var menuConsumedKeyUp: Int? = null
-
     private val starKey = LongPressKey(::onStarTap, ::openSettings)
     private val zeroKey = LongPressKey({ appendChar('0') }, { appendChar('+') })
     private val backKey = LongPressKey(::backspaceOrClose, ::clearDialString)
@@ -251,17 +245,7 @@ class DialerActivity : Activity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (menuSheet.isShowing) {
-            if (event.action == KeyEvent.ACTION_DOWN) {
-                menuSheet.handleKeyDown(event.keyCode, event)
-                menuConsumedKeyUp = event.keyCode
-            }
-            return true
-        }
-        if (event.action == KeyEvent.ACTION_UP && event.keyCode == menuConsumedKeyUp) {
-            menuConsumedKeyUp = null
-            return true
-        }
+        if (menuSheet.interceptKeyEvent(event)) return true
         when (event.keyCode) {
             KeyEvent.KEYCODE_STAR -> return dispatchLongPressKey(starKey, event)
             KeyEvent.KEYCODE_0 -> return dispatchLongPressKey(zeroKey, event)
