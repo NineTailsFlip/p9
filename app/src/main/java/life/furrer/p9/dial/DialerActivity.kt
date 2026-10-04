@@ -5,10 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.database.ContentObserver
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.CallLog
 import android.provider.ContactsContract
 import android.view.KeyEvent
@@ -37,6 +34,7 @@ import life.furrer.nine.core.ui.applyConfiguredTheme
 import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
+import life.furrer.nine.core.util.ProviderWatcher
 import life.furrer.nine.core.util.Reloader
 import life.furrer.p9.history.CallDetailActivity
 import life.furrer.p9.history.CallLogEntry
@@ -75,8 +73,8 @@ class DialerActivity : Activity() {
     private lateinit var hintBar: HintBar
     private lateinit var menuSheet: MenuSheet
 
-    private var contactsObserver: ContentObserver? = null
-    private var callLogObserver: ContentObserver? = null
+    private val contactsWatcher = ProviderWatcher(this, ContactsContract.AUTHORITY_URI) { loadData() }
+    private val callLogWatcher = ProviderWatcher(this, CallLog.Calls.CONTENT_URI) { loadData() }
 
     private val starKey = LongPressKey(::onStarTap) { openNineSettings() }
     private val zeroKey = LongPressKey({ appendChar('0') }, { appendChar('+') })
@@ -149,7 +147,8 @@ class DialerActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (hasNeededPermissions()) {
-            registerContentObservers()
+            contactsWatcher.start()
+            callLogWatcher.start()
             loadData()
             offerDialerRoleOnFirstRun()
         } else {
@@ -171,10 +170,8 @@ class DialerActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
-        contactsObserver?.let { contentResolver.unregisterContentObserver(it) }
-        callLogObserver?.let { contentResolver.unregisterContentObserver(it) }
-        contactsObserver = null
-        callLogObserver = null
+        contactsWatcher.stop()
+        callLogWatcher.stop()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -197,16 +194,6 @@ class DialerActivity : Activity() {
                 }
             }
         }
-    }
-
-    private fun registerContentObservers() {
-        val onChange = { loadData() }
-        contactsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) = onChange()
-        }.also { contentResolver.registerContentObserver(ContactsContract.AUTHORITY_URI, true, it) }
-        callLogObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) = onChange()
-        }.also { contentResolver.registerContentObserver(CallLog.Calls.CONTENT_URI, true, it) }
     }
 
     // Coalesced rather than a plain Async.run per trigger: onResume, both observers and a
@@ -417,7 +404,7 @@ class DialerActivity : Activity() {
         }
     }
 
-    // The existing callLogObserver (registered in registerContentObservers) already reloads on
+    // The existing callLogWatcher (started in onResume) already reloads on
     // any CallLog.Calls change, so a successful delete/clear needs no explicit follow-up here —
     // same "the write triggers its own reload" shape as :contacts' own screens.
     private fun deleteHistoryEntry(id: Long) {
