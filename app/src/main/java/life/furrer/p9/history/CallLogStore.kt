@@ -7,6 +7,11 @@ import android.content.pm.PackageManager
 import android.provider.CallLog
 import life.furrer.nine.contacts.ContactStore
 import life.furrer.nine.contacts.resolveNumbers
+import life.furrer.nine.core.util.int
+import life.furrer.nine.core.util.long
+import life.furrer.nine.core.util.mapRows
+import life.furrer.nine.core.util.string
+import life.furrer.nine.core.util.stringOr
 
 /** One row of `CallLog.Calls`, before day-grouping/collapsing (see [CallLogRows]). [resolvedName]
  *  and [resolvedContactId] come from the address book itself ([ContactStore.resolveNumbers])
@@ -54,36 +59,25 @@ object CallLogStore {
             CallLog.Calls.DURATION,
             CallLog.Calls.PHONE_ACCOUNT_ID,
         )
-        val raw = mutableListOf<CallLogEntry>()
-        context.contentResolver.query(
+        // At most `limit` rows (the screens ask for a couple of hundred), so by-name reads are fine here.
+        val raw = context.contentResolver.query(
             CallLog.Calls.CONTENT_URI,
             projection,
             number?.let { "${CallLog.Calls.NUMBER} = ?" },
             number?.let { arrayOf(it) },
             "${CallLog.Calls.DATE} DESC LIMIT $limit",
-        )?.use { cursor ->
-            val idIndex = cursor.getColumnIndexOrThrow(CallLog.Calls._ID)
-            val numberIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
-            val nameIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
-            val typeIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE)
-            val dateIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
-            val durationIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
-            val accountIdIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.PHONE_ACCOUNT_ID)
-            while (cursor.moveToNext()) {
-                raw.add(
-                    CallLogEntry(
-                        id = cursor.getLong(idIndex),
-                        number = cursor.getString(numberIndex) ?: "",
-                        cachedName = cursor.getString(nameIndex),
-                        resolvedName = null,
-                        resolvedContactId = null,
-                        type = cursor.getInt(typeIndex),
-                        date = cursor.getLong(dateIndex),
-                        durationSeconds = cursor.getLong(durationIndex),
-                        phoneAccountId = cursor.getString(accountIdIndex),
-                    ),
-                )
-            }
+        ).mapRows { cursor ->
+            CallLogEntry(
+                id = cursor.long(CallLog.Calls._ID),
+                number = cursor.stringOr(CallLog.Calls.NUMBER, ""),
+                cachedName = cursor.string(CallLog.Calls.CACHED_NAME),
+                resolvedName = null,
+                resolvedContactId = null,
+                type = cursor.int(CallLog.Calls.TYPE),
+                date = cursor.long(CallLog.Calls.DATE),
+                durationSeconds = cursor.long(CallLog.Calls.DURATION),
+                phoneAccountId = cursor.string(CallLog.Calls.PHONE_ACCOUNT_ID),
+            )
         }
 
         val resolved = ContactStore.resolveNumbers(context, raw.map { it.number })
