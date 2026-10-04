@@ -276,7 +276,7 @@ class DialerActivity : NineActivity() {
      *  instead of the framework's own `onKeyLongPress`. */
     private fun dispatchLongPressKey(key: LongPressKey, event: KeyEvent): Boolean {
         when (event.action) {
-            KeyEvent.ACTION_DOWN -> key.onDown()
+            KeyEvent.ACTION_DOWN -> key.onDown(event.repeatCount)
             KeyEvent.ACTION_UP -> key.onUp()
         }
         return true
