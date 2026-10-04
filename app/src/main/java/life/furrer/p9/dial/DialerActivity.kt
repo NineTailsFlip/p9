@@ -32,6 +32,7 @@ import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.RowBinder
 import life.furrer.nine.core.ui.RowListView
 import life.furrer.nine.core.ui.applyConfiguredTheme
+import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.Reloader
@@ -524,8 +525,4 @@ class DialerActivity : Activity() {
         rebuildRows()
         rowListView.setSelectedIndex(0)
     }
-
-    private fun dp(value: Int): Int = android.util.TypedValue.applyDimension(
-        android.util.TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
-    ).toInt()
 }

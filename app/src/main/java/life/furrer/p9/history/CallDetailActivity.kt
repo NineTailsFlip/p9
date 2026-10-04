@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +24,7 @@ import life.furrer.nine.core.ui.MenuItem
 import life.furrer.nine.core.ui.MenuSheet
 import life.furrer.nine.core.ui.Palette
 import life.furrer.nine.core.ui.applyConfiguredTheme
+import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.ui.hideStatusBar
 import life.furrer.nine.core.util.Async
 import life.furrer.nine.core.util.DateFmt
@@ -240,10 +240,6 @@ class CallDetailActivity : Activity() {
             requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), REQUEST_CALL_PHONE_PERMISSION)
         }
     }
-
-    private fun dp(value: Int): Int = TypedValue.applyDimension(
-        TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
-    ).toInt()
 
     companion object {
         const val EXTRA_NUMBER = "number"

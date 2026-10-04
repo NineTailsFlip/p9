@@ -12,6 +12,7 @@ import life.furrer.nine.contacts.bindContactRow
 import life.furrer.nine.contacts.contactRowHeightDp
 import life.furrer.nine.contacts.createContactRowContainer
 import life.furrer.nine.core.ui.Palette
+import life.furrer.nine.core.ui.dp
 import life.furrer.p9.history.bindCallLogRow
 import life.furrer.p9.history.callLogRowHeightDp
 import life.furrer.nine.core.util.PhoneFormat
@@ -62,7 +63,7 @@ private fun bindGrantAccess(container: LinearLayout, selected: Boolean) {
             textSize = 18f
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
             setTextColor(if (selected) Color.WHITE else Palette.GRAY_DIM)
             paintFlags = if (selected) paintFlags or Paint.UNDERLINE_TEXT_FLAG else paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
         },
@@ -74,7 +75,7 @@ private fun bindGrantAccess(container: LinearLayout, selected: Boolean) {
             textSize = 12f
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
             setTextColor(Palette.GRAY_FAINT)
         },
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
@@ -90,7 +91,7 @@ private fun bindSectionHeader(container: LinearLayout, label: String) {
             textSize = 11f
             letterSpacing = 0.11f
             setTextColor(Palette.GRAY_FAINT)
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
         },
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
     )
@@ -105,7 +106,7 @@ private fun bindRecentMatch(container: LinearLayout, label: String, selected: Bo
             textSize = 18f
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
             setTextColor(if (selected) Color.WHITE else Palette.GRAY_DIM)
             paintFlags = if (selected) paintFlags or Paint.UNDERLINE_TEXT_FLAG else paintFlags and Paint.UNDERLINE_TEXT_FLAG.inv()
         },
@@ -121,12 +122,9 @@ private fun bindTypedNumber(container: LinearLayout, digits: String) {
             text = PhoneFormat.displayTyping(context, digits)
             textSize = 18f
             setTextColor(Palette.GRAY_DIM)
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
         },
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
     )
 }
 
-private fun dp(context: Context, value: Int): Int = android.util.TypedValue.applyDimension(
-    android.util.TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), context.resources.displayMetrics
-).toInt()

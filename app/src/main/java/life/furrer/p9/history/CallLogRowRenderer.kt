@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import life.furrer.nine.core.ui.Palette
+import life.furrer.nine.core.ui.dp
 import life.furrer.nine.core.util.DateFmt
 import life.furrer.nine.core.util.PhoneFormat
 
@@ -51,7 +52,7 @@ private fun bindDayHeader(container: LinearLayout, row: CallLogRow.DayHeader) {
             textSize = 11f
             letterSpacing = 0.11f
             setTextColor(Palette.GRAY_FAINT)
-            setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+            setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
         },
         LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
     )
@@ -64,7 +65,7 @@ private fun bindEntry(container: LinearLayout, row: CallLogRow.Entry, selected: 
     val mainLine = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(context, ROW_SIDE_PADDING_DP), 0, dp(context, ROW_SIDE_PADDING_DP), 0)
+        setPadding(context.dp(ROW_SIDE_PADDING_DP), 0, context.dp(ROW_SIDE_PADDING_DP), 0)
     }
     mainLine.addView(
         TextView(context).apply {
@@ -76,7 +77,7 @@ private fun bindEntry(container: LinearLayout, row: CallLogRow.Entry, selected: 
             // column of text rather than a wash of red.
             setTextColor(if (row.type == android.provider.CallLog.Calls.MISSED_TYPE) Palette.RED else textColor)
         },
-        LinearLayout.LayoutParams(dp(context, GLYPH_COLUMN_WIDTH_DP), ViewGroup.LayoutParams.WRAP_CONTENT),
+        LinearLayout.LayoutParams(context.dp(GLYPH_COLUMN_WIDTH_DP), ViewGroup.LayoutParams.WRAP_CONTENT),
     )
     mainLine.addView(
         TextView(context).apply {
@@ -113,13 +114,10 @@ private fun bindEntry(container: LinearLayout, row: CallLogRow.Entry, selected: 
                 textSize = 12f
                 setTextColor(Palette.GRAY_MUTED)
                 // Lines up with the caller name, not the glyph column above it.
-                setPadding(dp(context, ROW_SIDE_PADDING_DP + GLYPH_COLUMN_WIDTH_DP), 0, dp(context, ROW_SIDE_PADDING_DP), dp(context, 4))
+                setPadding(context.dp(ROW_SIDE_PADDING_DP + GLYPH_COLUMN_WIDTH_DP), 0, context.dp(ROW_SIDE_PADDING_DP), context.dp(4))
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
     }
 }
 
-private fun dp(context: Context, value: Int): Int = android.util.TypedValue.applyDimension(
-    android.util.TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), context.resources.displayMetrics
-).toInt()
