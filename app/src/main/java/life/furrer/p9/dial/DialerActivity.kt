@@ -24,6 +24,7 @@ import life.furrer.nine.contacts.ContactsActivity
 import life.furrer.nine.contacts.ContactDetailActivity
 import life.furrer.nine.contacts.ContactHandoff
 import life.furrer.nine.core.Nine
+import life.furrer.nine.core.settings.openNineSettings
 import life.furrer.nine.core.ui.Dimens
 import life.furrer.nine.core.ui.HintBar
 import life.furrer.nine.core.ui.LongPressKey
@@ -77,7 +78,7 @@ class DialerActivity : Activity() {
     private var contactsObserver: ContentObserver? = null
     private var callLogObserver: ContentObserver? = null
 
-    private val starKey = LongPressKey(::onStarTap, ::openSettings)
+    private val starKey = LongPressKey(::onStarTap) { openNineSettings() }
     private val zeroKey = LongPressKey({ appendChar('0') }, { appendChar('+') })
     private val backKey = LongPressKey(::backspaceOrClose, ::clearDialString)
 
@@ -398,7 +399,7 @@ class DialerActivity : Activity() {
             @Suppress("DEPRECATION")
             items.add(MenuItem("Set P9 as default phone app") { startActivityForResult(DialerRole.requestIntent(this), REQUEST_DIALER_ROLE) })
         }
-        items.add(MenuItem("Settings") { openSettings() })
+        items.add(MenuItem("Settings") { openNineSettings() })
         menuSheet.show(items)
     }
 
@@ -438,10 +439,6 @@ class DialerActivity : Activity() {
                 MenuItem("Keep call history") {},
             ),
         )
-    }
-
-    private fun openSettings() {
-        startActivity(Intent(this, Nine.app.settingsActivity))
     }
 
     /** The call key's target follows the same "never guess" rule as `:contacts`' own dial(): the
