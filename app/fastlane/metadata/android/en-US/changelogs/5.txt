@@ -1,0 +1,2 @@
+- A contact's details say when their calls go to voicemail
+- Smaller and faster: the app is now optimized at build time
