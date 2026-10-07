@@ -1,0 +1,2 @@
+- The manual now describes the dialer's search correctly: typed digits find contacts and calls by number
+- The store listing now shows screenshots
