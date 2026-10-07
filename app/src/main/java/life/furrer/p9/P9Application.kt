@@ -28,9 +28,9 @@ private val p9App = NineApp(
                 dialer that doubles as call history, and a call screen driven entirely by the green
                 key, the red key and the d-pad.
 
-                Dial a number directly, or type any digit to search your contacts and call history
-                the same T9 way as every other Nine app. With nothing typed, the list shows your call
-                history instead, newest first and grouped by day.
+                Dial a number directly: as you type, the list shows the contacts and recent calls whose
+                number contains those digits. With nothing typed, the list shows your call history
+                instead, newest first and grouped by day.
 
                 For P9 to draw its own call screen and answer/end calls directly, it needs to be set
                 as your phone's default app — the dialer's "*" menu offers this, and it also lives in

@@ -5,7 +5,7 @@ the red key and the d-pad.
 Features:
 
 * One screen for dialing and call history, grouped by day
-* T9 search across contacts and call history as you type
+* Search contacts and call history by number as you type
 * Call screen: answer, reject or silence the ringer; mute, speaker, hold, keypad
 * Swap and merge calls when a second one comes in
 * Save a number from the call history as a new contact, or add it to an existing one
