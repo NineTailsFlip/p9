@@ -9,12 +9,12 @@ export ANDROID_HOME=/opt/android-sdk
 
 ./gradlew :app:installDebug
 
-adb shell am force-stop life.furrer.p9
-adb shell am start -n life.furrer.p9/.dial.DialerActivity
+adb shell am force-stop io.github.ninetailsflip.p9
+adb shell am start -n io.github.ninetailsflip.p9/life.furrer.p9.dial.DialerActivity
 
 PID=""
 for _ in $(seq 1 20); do
-    PID="$(adb shell pidof life.furrer.p9 || true)"
+    PID="$(adb shell pidof io.github.ninetailsflip.p9 || true)"
     [ -n "$PID" ] && break
     sleep 0.2
 done

@@ -1,5 +1,6 @@
 package life.furrer.p9.settings
 
+import io.github.ninetailsflip.update.updatesSection
 import life.furrer.nine.core.NineSurface
 import life.furrer.nine.core.settings.NineSettingsActivity
 import life.furrer.nine.core.settings.SectionScope
@@ -15,6 +16,7 @@ private const val REQUEST_DIALER_ROLE = 102
 class SettingsActivity : NineSettingsActivity() {
     override fun buildAppSections(screen: SettingsScreen, surface: NineSurface) {
         screen.section("Phone") { buildPhoneSection(this) }
+        updatesSection(screen, this, ::refresh)
     }
 
     private fun buildPhoneSection(scope: SectionScope) {
